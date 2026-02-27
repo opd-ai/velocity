@@ -14,7 +14,7 @@ Every system that produces visual, audio, or narrative output must implement `Se
 | `fantasy`   | Magical scrollspace           | Enchanted vessels, arcane constructs   | Spell projectiles, rune bursts | Constellation fields, celestial nebulae        |
 | `scifi`     | Asteroid field                | Fighters, drones, mechanical cruisers  | Lasers, plasma cannons         | Deep-space nebulae, asteroid belts             |
 | `horror`    | Void / biomass                | Organic ships, tentacle enemies        | Acid sprays, spore blasts      | Flesh-wall backgrounds, darkness, void fog     |
-| `cyberpunk` | Data highway                  | Geometric neon ships, data constructs  | Data-stream bullets, emp bursts| Grid-line backgrounds, neon city-scapes        |
+| `cyberpunk` | Data highway                  | Geometric neon ships, data constructs  | Data-stream bullets, EMP bursts| Grid-line backgrounds, neon city-scapes        |
 | `postapoc`  | Orbital debris field          | Salvaged craft, makeshift vessels      | Makeshift cannons, debris shot | Earth-ruin orbit backgrounds, debris clouds    |
 
 ---
