@@ -256,3 +256,9 @@ The following venture packages are portable and will be vendored or imported dir
 | `pkg/hostplay` | Local-host authoritative server scaffold |
 | `pkg/integration` | External service integration hooks |
 | `mods/` | Mod loader and scripted mod API |
+
+---
+
+## Plan History
+
+- 2026-02-27 PLAN.md created for v1.0 — Core Engine + Playable Single-Player (archived to docs/)
