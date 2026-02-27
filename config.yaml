@@ -1,0 +1,25 @@
+# Velocity default configuration
+
+display:
+  width: 800
+  height: 600
+  fullscreen: false
+  vsync: true
+
+audio:
+  master_volume: 0.8
+  music_volume: 0.6
+  sfx_volume: 0.8
+
+gameplay:
+  genre: "scifi"
+  arena_mode: "wrap"
+  seed: 0
+
+controls:
+  thrust: "W"
+  rotate_left: "A"
+  rotate_right: "D"
+  fire: "Space"
+  secondary: "Shift"
+  pause: "Escape"
