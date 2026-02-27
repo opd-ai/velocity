@@ -53,12 +53,19 @@ func NewEconomy() *Economy {
 }
 
 // AddCredits adds credits to the player's balance.
+// Non-positive amounts are ignored.
 func (e *Economy) AddCredits(amount int64) {
-	e.Credits += amount
+	if amount > 0 {
+		e.Credits += amount
+	}
 }
 
 // Spend deducts credits if sufficient balance exists.
+// Non-positive amounts are rejected.
 func (e *Economy) Spend(amount int64) bool {
+	if amount <= 0 {
+		return false
+	}
 	if e.Credits >= amount {
 		e.Credits -= amount
 		return true

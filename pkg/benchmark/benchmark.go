@@ -18,10 +18,16 @@ func Run(systemName string, iterations int, fn func()) Result {
 		fn()
 	}
 	total := time.Since(start).Seconds() * 1000
+
+	var avg float64
+	if iterations > 0 {
+		avg = total / float64(iterations)
+	}
+
 	return Result{
 		SystemName: systemName,
 		Iterations: iterations,
 		TotalMs:    total,
-		AvgMs:      total / float64(iterations),
+		AvgMs:      avg,
 	}
 }
