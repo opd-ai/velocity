@@ -206,7 +206,7 @@ Space weather types:
 | Federation | Cross-instance player identity federation | `pkg/social` |
 | Cross-server travel → cross-server leaderboards | Compare scores across server regions / instances | `pkg/social` |
 | Host-play | Local host runs authoritative game instance; others connect | `pkg/hostplay` |
-| Integration layer | External service integration: OAuth identity, CDN asset delivery, telemetry pipeline | `pkg/integration` |
+| Integration layer | External service integration: OAuth identity, telemetry pipeline (no asset delivery—all assets are procedurally generated) | `pkg/integration` |
 
 **Tier 6 — Production:**
 
@@ -247,7 +247,7 @@ The following venture packages are portable and will be vendored or imported dir
 | Package | Role in velocity |
 |---------|-----------------|
 | `pkg/engine` | ECS core, deterministic RNG, `SetGenre()` interface, game-loop scaffolding |
-| `pkg/procgen/genre` | Genre post-processing presets, genre-keyed asset generation helpers |
+| `pkg/procgen/genre` | Genre post-processing presets, genre-keyed procedural asset generation helpers |
 | `pkg/audio` | Adaptive music engine, SFX player, positional audio |
 | `pkg/rendering` | Sprite generation, animation, particle system, dynamic lighting, batching, viewport culling |
 | `pkg/networking` | Client-server netcode, connection management, lag compensation |
