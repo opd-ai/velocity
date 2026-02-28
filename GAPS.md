@@ -1,16 +1,20 @@
 # Implementation Gaps
 
+## Procedural Generation Mandate
+
+**All documentation in this repository enforces a strict requirement: 100% of gameplay assets—including audio, visual, and narrative components—must be procedurally generated at runtime using deterministic algorithms.** No pre-rendered, embedded, or bundled audio files (.mp3, .wav, .ogg), visual/image files (.png, .jpg, .svg, .gif), or static narrative content (hardcoded dialogue, pre-written cutscene scripts, fixed story arcs, embedded text assets) are permitted. All gaps listed below must be resolved in ways that adhere to this constraint.
+
 ## v1.0 — Core Engine + Playable Single-Player
 
 ### Procedural Audio Generation
-- **Gap**: The roadmap specifies "adaptive music" with "intensity-driven music layers" and "genre-specific instrumentation", but no technical specification exists for how to generate music procedurally using Ebitengine's PCM audio streaming API. There is no note system, beat sequencer, or frequency table defined.
+- **Gap**: The roadmap specifies "adaptive music" with "intensity-driven music layers" and "genre-specific instrumentation", but no technical specification exists for how to generate music procedurally using Ebitengine's PCM audio streaming API. There is no note system, beat sequencer, or frequency table defined. **All audio must be procedurally generated—no audio files are permitted.**
 - **Impact**: Audio implementation (PLAN.md Steps 13–15) cannot produce musically coherent output without a defined synthesis approach. Risk of placeholder silence or noise.
-- **Resolution needed**: Define a minimal music synthesis strategy — e.g., predefined frequency tables for pentatonic scales, tempo-driven note sequencing, and layered sine/square waveforms. Alternatively, identify a Go-native procedural music library compatible with Ebitengine's audio context.
+- **Resolution needed**: Define a minimal music synthesis strategy — e.g., predefined frequency tables for pentatonic scales, tempo-driven note sequencing, and layered sine/square waveforms. Alternatively, identify a Go-native procedural music library compatible with Ebitengine's audio context. **The solution must generate all audio procedurally at runtime with no external audio files.**
 
 ### Procedural Sprite Generation Algorithm
-- **Gap**: The roadmap requires "procedurally drawn ship/enemy/projectile sprites" with "no external assets", but no algorithm is specified for generating visually recognisable ship shapes from a seed. The `SpriteCache` infrastructure exists but `rendering.go` contains no drawing logic.
+- **Gap**: The roadmap requires "procedurally drawn ship/enemy/projectile sprites" with "no external assets", but no algorithm is specified for generating visually recognisable ship shapes from a seed. The `SpriteCache` infrastructure exists but `rendering.go` contains no drawing logic. **All sprites must be procedurally generated—no image files are permitted.**
 - **Impact**: Sprite generation (PLAN.md Step 4) requires an algorithmic approach to produce genre-appropriate ship silhouettes. Without this, rendered entities will be placeholder rectangles.
-- **Resolution needed**: Define a sprite generation algorithm. Recommended approach: seed-driven symmetric pixel placement on an N×N grid (e.g., 16×16), where the left half is randomly filled and mirrored to the right to produce spacecraft-like silhouettes. Genre colour palettes are already available via `pkg/procgen/genre.Preset`.
+- **Resolution needed**: Define a sprite generation algorithm. Recommended approach: seed-driven symmetric pixel placement on an N×N grid (e.g., 16×16), where the left half is randomly filled and mirrored to the right to produce spacecraft-like silhouettes. Genre colour palettes are already available via `pkg/procgen/genre.Preset`. **The solution must generate all sprites procedurally at runtime with no external image files.**
 
 ### Gamepad and Touch Input Support
 - **Gap**: The v1.0 roadmap lists "Keyboard/gamepad/touch; rebindable controls" as a Tier 1 requirement, but the current `InputState` and `config.yaml` only define keyboard bindings. Ebitengine supports `ebiten.GamepadButton` and `ebiten.TouchID` APIs, but no mapping scheme or configuration structure is defined for these input methods.

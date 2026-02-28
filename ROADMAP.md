@@ -5,6 +5,18 @@
 
 ---
 
+## Procedural Generation Mandate
+
+**All gameplay assets—including audio, visual, and narrative components—must be 100% procedurally generated at runtime using deterministic algorithms.** This is a fundamental architectural constraint:
+
+- **Audio**: All music, sound effects, and positional audio must be generated procedurally using waveform synthesis. No .mp3, .wav, .ogg, or other audio files are permitted.
+- **Visual**: All sprites, particles, animations, and UI elements must be generated procedurally from seed values. No .png, .jpg, .svg, .gif, or other image files are permitted.
+- **Narrative**: All quests, dialogue, lore, world-building text, plot progression, and character backstories must be generated procedurally and deterministically. No hardcoded dialogue trees, pre-written cutscene scripts, fixed story arcs, or embedded text assets are permitted.
+
+The entire game must produce identical output given identical seed inputs, with zero reliance on external, bundled, or pre-authored media or text files.
+
+---
+
 ## Genre Support
 
 Every system that produces visual, audio, or narrative output must implement `SetGenre(genreID string)` to switch thematic presentation at runtime. The five supported setting genres and their velocity-specific manifestations are:
@@ -34,12 +46,12 @@ Every system that produces visual, audio, or narrative output must implement `Se
 | Seed-based deterministic RNG | All procedural content seeded — reproducible runs, per-seed leaderboards | `pkg/engine` |
 | Input system | Keyboard/gamepad/touch; rebindable controls | `pkg/engine` |
 | Camera system | Viewport tracking, screen-shake on explosions | `pkg/engine` |
-| Rendering — sprites | Procedurally drawn ship/enemy/projectile sprites (no external assets) | `pkg/rendering` |
+| Rendering — sprites | Procedurally drawn ship/enemy/projectile sprites (no external image assets) | `pkg/rendering` |
 | Rendering — animation | Frame-based sprite animation for thrusters, explosions, pickups | `pkg/rendering` |
 | Rendering — particles | Explosion debris, thruster trails, impact sparks | `pkg/rendering` |
-| Audio — adaptive music | Intensity-driven music layers; genre-specific instrumentation | `pkg/audio` |
-| Audio — SFX | Weapon fire, explosions, powerup collect, UI feedback | `pkg/audio` |
-| Audio — positional | Off-screen enemy audio cues using distance/angle | `pkg/audio` |
+| Audio — adaptive music | Procedurally generated intensity-driven music layers; genre-specific instrumentation via waveform synthesis | `pkg/audio` |
+| Audio — SFX | Procedurally generated weapon fire, explosions, powerup collect, UI feedback | `pkg/audio` |
+| Audio — positional | Off-screen enemy audio cues using distance/angle (procedurally generated) | `pkg/audio` |
 | UI / HUD | Ship health bar, shield meter, score, wave counter, combo display | `pkg/ux` |
 | Menus | Main menu, pause menu, game-over screen, high-score entry | `pkg/ux` |
 | Tutorial | First-run guided wave teaching thrust, fire, and dodge | `pkg/ux` |
@@ -86,7 +98,7 @@ Every system that produces visual, audio, or narrative output must implement `Se
 | AI — behavior trees | Formation AI, dive-bomb patterns, strafing runs, flanking maneuvers | `pkg/engine` (AI subsystem) |
 | Status effects | Ship debuffs: slowed (engine damage), EMP'd (controls scrambled), hull breach (continuous damage) | `pkg/combat` |
 | Magic / spells | Special weapons / screen-clearing bombs; genre-skinned (spell nova / EMP burst / spore cloud / data wipe / debris burst) | `pkg/combat` |
-| Quests / objectives | Wave objectives: "survive 60 s", "destroy all elites before swarm", bonus mission waves | `pkg/world` (quests subsystem) |
+| Quests / objectives | Procedurally generated wave objectives: "survive 60 s", "destroy all elites before swarm", bonus mission waves (no pre-written quest text) | `pkg/world` (quests subsystem) |
 
 **Velocity-Specific (new):**
 
@@ -130,7 +142,7 @@ Space weather types:
 
 | System | Velocity Implementation | venture Source |
 |--------|------------------------|----------------|
-| Environmental storytelling | Background narrative conveyed through environment: drifting wreckage, distant battles, ruins, lore fragments in debris patterns | `pkg/world` |
+| Environmental storytelling | Background narrative conveyed through procedurally generated environment: drifting wreckage, distant battles, ruins, algorithmically generated lore fragments in debris patterns (no static text files) | `pkg/world` |
 
 **Tier 2 — Visual / Audio Enhancements:**
 
@@ -216,7 +228,7 @@ The following venture systems are **not included** in velocity, with rationale:
 |----------------|-----------|
 | Vehicles | Player *is* the vehicle; a separate vehicle system is redundant. |
 | Reputation / alignment | Arcade sessions are too short for faction standing to be meaningful. |
-| Books / lore system | Detailed written lore breaks the fast-paced arcade flow. |
+| Books / lore system | Detailed written lore breaks the fast-paced arcade flow; all lore must be procedurally generated if present. |
 | Emotes | No persistent avatar; emotes have no context in a shooter. |
 | Trading (player-to-player) | Economy scope limited to between-wave shop; P2P trading adds unwanted complexity. |
 | Mail system | No persistent inbox context in an arcade session. |
@@ -224,7 +236,7 @@ The following venture systems are **not included** in velocity, with rationale:
 | Building / housing | Static arena play; no construction meta-game. |
 | Furniture system | No housing, therefore no furniture. |
 | VR system (`pkg/vr`) | Arcade top-down perspective is not suited to VR; deferred indefinitely. |
-| Dialogue system | No named NPCs; narrative delivered through environment and HUD only. |
+| Dialogue system | No named NPCs; narrative delivered through procedurally generated environment and HUD only (no dialogue trees or pre-scripted text). |
 
 ---
 
