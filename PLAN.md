@@ -5,6 +5,16 @@
 - **Prerequisites**: Go 1.24+, Ebitengine v2.9+, Viper v1.21+ (all present in go.mod)
 - **Estimated Scope**: Large
 
+## Procedural Generation Requirement
+
+**All gameplay assets must be 100% procedurally generated at runtime using deterministic algorithms.** This applies to:
+
+- **Audio**: Music layers, sound effects, and positional audio generated via waveform synthesis (sine, square, noise) — no audio files
+- **Visual**: Ship sprites, enemy sprites, projectiles, particles, UI elements generated via pixel algorithms and drawing primitives — no image files  
+- **Narrative**: Quest text, objective descriptions, environmental lore generated algorithmically from seed values — no embedded text assets or dialogue files
+
+The game must produce identical output given identical seed inputs, with zero reliance on external, bundled, or pre-authored media files.
+
 ## Implementation Steps
 
 ### Ship Physics & Player Control
@@ -24,7 +34,7 @@
 ### Rendering Pipeline
 
 4. Implement procedural sprite generation for ships and enemies
-   - Deliverable: `pkg/rendering/sprites.go` — functions to procedurally generate ship and enemy sprite images as `*ebiten.Image`, keyed by genre + variant, cached in `SpriteCache`
+   - Deliverable: `pkg/rendering/sprites.go` — functions to procedurally generate ship and enemy sprite images as `*ebiten.Image` from seed values using pixel algorithms (no external image files), keyed by genre + variant, cached in `SpriteCache`
    - Dependencies: `pkg/rendering/rendering.go` (SpriteCache), `pkg/procgen/genre`
 
 5. Implement sprite drawing in the render loop
@@ -66,11 +76,11 @@
 ### Audio
 
 13. Implement adaptive music playback
-    - Deliverable: Update `pkg/audio/audio.go` — generate or load minimal procedural audio tones for background music; implement intensity-driven layering that increases with wave number
+    - Deliverable: Update `pkg/audio/audio.go` — procedurally generate music tones via waveform synthesis (no audio files); implement intensity-driven layering that increases with wave number using algorithmically generated audio streams
     - Dependencies: Ebitengine audio API
 
 14. Implement SFX triggers
-    - Deliverable: Update `pkg/audio/audio.go` — implement `PlaySFX()` for weapon fire, explosions, and powerup collect using procedurally generated waveforms (sine/square/noise bursts)
+    - Deliverable: Update `pkg/audio/audio.go` — implement `PlaySFX()` for weapon fire, explosions, and powerup collect using procedurally generated waveforms (sine/square/noise bursts) with no audio files
     - Dependencies: Step 13 (audio manager initialisation)
 
 15. Implement positional audio cues
@@ -123,8 +133,8 @@
 
 - **Physics model**: Newtonian 2-D — thrust applies acceleration along ship facing vector; velocity accumulates with configurable drag coefficient (0.98 per tick default); rotation is angular velocity with instant response
 - **Collision detection**: AABB (axis-aligned bounding box) for v1.0; sufficient for top-down sprite rectangles; upgrade to circle-based or SAT in v2.0+ if needed
-- **Sprite generation**: Procedural pixel-art via Go `image` package rendered to `*ebiten.Image`; symmetric ship hulls generated from seed using mirrored random pixel placement; cached in `SpriteCache` by `genreID:variant` key
-- **Audio generation**: Procedural waveforms using Ebitengine's `audio` package; sine waves for music tones, noise bursts for explosions, square waves for laser SFX
+- **Sprite generation**: Procedural pixel-art via Go `image` package rendered to `*ebiten.Image`; symmetric ship hulls generated from seed using mirrored random pixel placement (no external image files); cached in `SpriteCache` by `genreID:variant` key
+- **Audio generation**: Procedural waveforms using Ebitengine's `audio` package with no audio files; sine waves for music tones, noise bursts for explosions, square waves for laser SFX — all generated algorithmically at runtime
 - **Arena bounds**: Screen dimensions from `config.yaml` (`800×600` default); wrap mode teleports entities crossing an edge to the opposite side; bounded mode reverses velocity component on contact
 - **Wave formula**: Wave N spawns `N + 2` enemies with health `10 + N*5` and speed `1.0 + N*0.1`; single enemy type for v1.0 (basic drone)
 - **Frame rate**: Fixed 60 TPS via Ebitengine default; `dt = 1.0/60.0` used for physics integration
@@ -145,7 +155,7 @@
 - [ ] Audio plays: background music, weapon-fire SFX, explosion SFX
 - [ ] All packages have unit tests; `go test ./...` passes with ≥82% coverage
 - [ ] CI pipeline builds and tests on Linux, macOS, and Windows
-- [ ] Single binary with zero external asset files
+- [ ] Single binary with zero external asset files (all assets procedurally generated)
 
 ## Known Gaps
 - **Procedural audio generation**: Ebitengine's audio API supports PCM streaming, but the exact approach for generating music layers procedurally (e.g., frequency tables, beat sequencing) is not specified in the roadmap — see GAPS.md

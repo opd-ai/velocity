@@ -2,6 +2,16 @@
 
 Procedural arcade shooter built with Go and Ebitengine.
 
+## Core Design Principle: 100% Procedural Generation
+
+**All gameplay assets—including audio, visual, and narrative components—must be procedurally generated at runtime using deterministic algorithms.** This project strictly prohibits:
+
+- Pre-rendered or embedded audio files (e.g., .mp3, .wav, .ogg)
+- Static visual/image files (e.g., .png, .jpg, .svg, .gif)
+- Pre-authored narrative content (e.g., hardcoded dialogue, pre-written cutscene scripts, fixed story arcs, embedded text assets)
+
+Every asset—from sprites and particles to music and sound effects, from quest descriptions to world-building lore—must be generated procedurally and deterministically, producing identical output given identical seed inputs, with zero reliance on external, bundled, or pre-authored media or text files.
+
 ## Directory Structure
 
 ```
@@ -9,13 +19,13 @@ cmd/velocity/       Entry point (Ebitengine game loop)
 pkg/
   engine/           ECS framework, deterministic RNG, input, camera
   config/           Viper-based configuration loading
-  rendering/        Sprite generation, animation, particles
-  audio/            Adaptive music, SFX, positional audio
+  rendering/        Procedurally generated sprite generation, animation, particles (no image files)
+  audio/            Procedurally generated adaptive music, SFX, positional audio (no audio files)
   ux/               HUD, menus, tutorial
   procgen/          Procedural wave/content generation
   procgen/genre/    Genre presets and post-processing
   combat/           Weapons, damage, status effects
-  world/            Quests, weather, environment, loot, economy
+  world/            Procedurally generated quests, weather, environment, loot, economy (no text files)
   class/            Ship hull classes, upgrade trees
   balance/          Stat tuning tables, difficulty curves
   companion/        Wingman AI behaviour trees
