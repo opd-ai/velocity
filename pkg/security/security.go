@@ -18,11 +18,11 @@ func NewToken(value string) *Token {
 var ErrNotImplemented = errors.New("security: encryption not yet implemented")
 
 // Encrypt encrypts a byte slice using E2E encryption.
-func Encrypt(data []byte, key []byte) ([]byte, error) {
+func Encrypt(data, key []byte) ([]byte, error) {
 	return nil, ErrNotImplemented
 }
 
 // Decrypt decrypts a byte slice using E2E encryption.
-func Decrypt(data []byte, key []byte) ([]byte, error) {
+func Decrypt(data, key []byte) ([]byte, error) {
 	return nil, ErrNotImplemented
 }

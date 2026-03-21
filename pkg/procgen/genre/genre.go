@@ -3,11 +3,11 @@ package genre
 
 // ID constants for supported genres.
 const (
-	Fantasy  = "fantasy"
-	SciFi    = "scifi"
-	Horror   = "horror"
+	Fantasy   = "fantasy"
+	SciFi     = "scifi"
+	Horror    = "horror"
 	Cyberpunk = "cyberpunk"
-	PostApoc = "postapoc"
+	PostApoc  = "postapoc"
 )
 
 // All returns a list of all supported genre IDs.

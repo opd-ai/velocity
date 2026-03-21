@@ -3,8 +3,8 @@ package hostplay
 
 // Host represents a local authoritative game server.
 type Host struct {
-	port    int
-	running bool
+	port       int
+	running    bool
 	maxPlayers int
 }
 

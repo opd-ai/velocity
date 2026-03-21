@@ -5,11 +5,11 @@ import "fmt"
 
 // ValidGenres contains the set of supported genre identifiers.
 var ValidGenres = map[string]bool{
-	"fantasy":  true,
-	"scifi":    true,
-	"horror":   true,
+	"fantasy":   true,
+	"scifi":     true,
+	"horror":    true,
 	"cyberpunk": true,
-	"postapoc": true,
+	"postapoc":  true,
 }
 
 // ValidArenaModes contains the set of supported arena modes.

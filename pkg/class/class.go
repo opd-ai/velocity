@@ -3,11 +3,11 @@ package class
 
 // HullClass represents a ship hull type with base stats.
 type HullClass struct {
-	Name    string
-	Health  float64
-	Speed   float64
-	Armor   float64
-	Slots   int
+	Name   string
+	Health float64
+	Speed  float64
+	Armor  float64
+	Slots  int
 }
 
 // DefaultHulls returns the set of base hull classes.

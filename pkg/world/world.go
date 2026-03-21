@@ -4,10 +4,10 @@ package world
 
 // Weather represents a space weather phenomenon.
 type Weather struct {
-	Name       string
-	GenreID    string
-	Active     bool
-	Intensity  float64
+	Name      string
+	GenreID   string
+	Active    bool
+	Intensity float64
 }
 
 // NewWeather creates a new weather instance.

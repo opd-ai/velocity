@@ -31,11 +31,11 @@ func NewSpriteCache() *SpriteCache {
 
 // Particle represents a single particle in the particle system.
 type Particle struct {
-	X, Y     float64
-	VX, VY   float64
-	Life     float64
-	MaxLife  float64
-	Color    color.RGBA
+	X, Y    float64
+	VX, VY  float64
+	Life    float64
+	MaxLife float64
+	Color   color.RGBA
 }
 
 // ParticleSystem manages a collection of particles.
