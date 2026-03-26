@@ -62,6 +62,18 @@ func (w *World) RemoveEntity(e Entity) {
 	delete(w.entities, e)
 }
 
+// ForEachEntity iterates over all entities calling the given function.
+func (w *World) ForEachEntity(fn func(Entity)) {
+	for e := range w.entities {
+		fn(e)
+	}
+}
+
+// EntityCount returns the number of entities in the world.
+func (w *World) EntityCount() int {
+	return len(w.entities)
+}
+
 // AddSystem registers a system with the world.
 func (w *World) AddSystem(s System) {
 	w.systems = append(w.systems, s)

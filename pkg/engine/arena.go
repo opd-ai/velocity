@@ -74,37 +74,53 @@ func (as *ArenaSystem) applyWrap(pos *Position) {
 
 // applyBounded bounces entity off boundaries by reversing velocity.
 func (as *ArenaSystem) applyBounded(entity Entity, pos *Position) {
+	vel := as.getVelocity(entity)
+	as.bounceOnXBoundary(pos, vel)
+	as.bounceOnYBoundary(pos, vel)
+}
+
+// getVelocity retrieves the velocity component for an entity, or nil.
+func (as *ArenaSystem) getVelocity(entity Entity) *Velocity {
 	velComp, hasVel := as.world.GetComponent(entity, "velocity")
-
-	var vel *Velocity
-	if hasVel {
-		vel = velComp.(*Velocity)
+	if !hasVel {
+		return nil
 	}
+	return velComp.(*Velocity)
+}
 
-	// Handle X boundary
+// bounceOnXBoundary handles left/right edge collision.
+func (as *ArenaSystem) bounceOnXBoundary(pos *Position, vel *Velocity) {
 	if pos.X < 0 {
 		pos.X = 0
-		if vel != nil {
-			vel.VX = -vel.VX
-		}
+		reverseVX(vel)
 	} else if pos.X >= as.width {
 		pos.X = as.width - 1
-		if vel != nil {
-			vel.VX = -vel.VX
-		}
+		reverseVX(vel)
 	}
+}
 
-	// Handle Y boundary
+// bounceOnYBoundary handles top/bottom edge collision.
+func (as *ArenaSystem) bounceOnYBoundary(pos *Position, vel *Velocity) {
 	if pos.Y < 0 {
 		pos.Y = 0
-		if vel != nil {
-			vel.VY = -vel.VY
-		}
+		reverseVY(vel)
 	} else if pos.Y >= as.height {
 		pos.Y = as.height - 1
-		if vel != nil {
-			vel.VY = -vel.VY
-		}
+		reverseVY(vel)
+	}
+}
+
+// reverseVX negates the X velocity component if vel is non-nil.
+func reverseVX(vel *Velocity) {
+	if vel != nil {
+		vel.VX = -vel.VX
+	}
+}
+
+// reverseVY negates the Y velocity component if vel is non-nil.
+func reverseVY(vel *Velocity) {
+	if vel != nil {
+		vel.VY = -vel.VY
 	}
 }
 

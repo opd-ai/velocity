@@ -28,92 +28,74 @@ type SpriteKey struct {
 
 // GenerateShipSprite creates a procedurally generated ship sprite.
 func GenerateShipSprite(rng *rand.Rand, genreID string, size int) *image.RGBA {
-	if size < 8 {
-		size = 8
-	}
+	const defaultFillChance = 0.45
+	defaultPalette := []color.RGBA{{R: 200, G: 200, B: 200, A: 255}}
 
-	img := image.NewRGBA(image.Rect(0, 0, size, size))
-	preset := genre.GetPreset(genreID)
-	palette := preset.Colors
-
-	if len(palette) == 0 {
-		palette = []color.RGBA{{R: 200, G: 200, B: 200, A: 255}}
-	}
-
-	// Generate left half with symmetric mirroring
-	fillChance := 0.45
-	halfWidth := size / 2
-	for y := 0; y < size; y++ {
-		for x := 0; x < halfWidth; x++ {
-			if shouldFillPixel(rng, x, y, size, fillChance) {
-				c := palette[rng.Intn(len(palette))]
-				setPixel(img, x, y, c)
-				// Mirror to right half
-				setPixel(img, size-1-x, y, c)
-			}
-		}
-	}
-
-	// Fill center column for odd-width sprites
-	if size%2 == 1 {
-		centerX := halfWidth
-		for y := 0; y < size; y++ {
-			if rng.Float64() < fillChance {
-				c := palette[rng.Intn(len(palette))]
-				setPixel(img, centerX, y, c)
-			}
-		}
-	}
-
-	// Add a cockpit/engine detail in center
-	addCenterDetail(img, rng, size, palette)
-
+	img := generateSymmetricBody(rng, genreID, size, defaultFillChance, defaultPalette)
+	addCenterDetail(img, rng, size, getPalette(genreID, defaultPalette))
 	return img
 }
 
 // GenerateEnemySprite creates a procedurally generated enemy sprite.
 func GenerateEnemySprite(rng *rand.Rand, genreID string, size int) *image.RGBA {
+	const enemyFillChance = 0.55
+	defaultPalette := []color.RGBA{{R: 255, G: 100, B: 100, A: 255}}
+
+	img := generateSymmetricBody(rng, genreID, size, enemyFillChance, defaultPalette)
+	addHostileAccent(img, rng, size, getPalette(genreID, defaultPalette))
+	return img
+}
+
+// generateSymmetricBody creates the common symmetric pixel pattern for sprites.
+func generateSymmetricBody(rng *rand.Rand, genreID string, size int, fillChance float64, defaultPalette []color.RGBA) *image.RGBA {
 	if size < 8 {
 		size = 8
 	}
 
 	img := image.NewRGBA(image.Rect(0, 0, size, size))
+	palette := getPalette(genreID, defaultPalette)
+
+	fillSymmetricHalf(img, rng, size, fillChance, palette)
+	fillCenterColumn(img, rng, size, fillChance, palette)
+
+	return img
+}
+
+// getPalette returns the genre palette or the provided default.
+func getPalette(genreID string, defaultPalette []color.RGBA) []color.RGBA {
 	preset := genre.GetPreset(genreID)
-	palette := preset.Colors
-
-	if len(palette) == 0 {
-		palette = []color.RGBA{{R: 255, G: 100, B: 100, A: 255}}
+	if len(preset.Colors) > 0 {
+		return preset.Colors
 	}
+	return defaultPalette
+}
 
-	// Enemies have a more aggressive fill pattern
-	fillChance := 0.55
+// fillSymmetricHalf generates the left half with symmetric mirroring.
+func fillSymmetricHalf(img *image.RGBA, rng *rand.Rand, size int, fillChance float64, palette []color.RGBA) {
 	halfWidth := size / 2
 	for y := 0; y < size; y++ {
 		for x := 0; x < halfWidth; x++ {
 			if shouldFillPixel(rng, x, y, size, fillChance) {
 				c := palette[rng.Intn(len(palette))]
 				setPixel(img, x, y, c)
-				// Mirror to right half
 				setPixel(img, size-1-x, y, c)
 			}
 		}
 	}
+}
 
-	// Fill center column for odd-width sprites
-	if size%2 == 1 {
-		centerX := halfWidth
-		for y := 0; y < size; y++ {
-			if rng.Float64() < fillChance {
-				c := palette[rng.Intn(len(palette))]
-				setPixel(img, centerX, y, c)
-			}
+// fillCenterColumn fills the center column for odd-width sprites.
+func fillCenterColumn(img *image.RGBA, rng *rand.Rand, size int, fillChance float64, palette []color.RGBA) {
+	if size%2 == 0 {
+		return
+	}
+	centerX := size / 2
+	for y := 0; y < size; y++ {
+		if rng.Float64() < fillChance {
+			c := palette[rng.Intn(len(palette))]
+			setPixel(img, centerX, y, c)
 		}
 	}
-
-	// Add hostile accent
-	addHostileAccent(img, rng, size, palette)
-
-	return img
 }
 
 // GenerateProjectileSprite creates a procedurally generated projectile sprite.
@@ -161,40 +143,46 @@ func shouldFillPixel(rng *rand.Rand, x, y, size int, baseChance float64) bool {
 // addCenterDetail adds a cockpit or engine detail to the sprite center.
 func addCenterDetail(img *image.RGBA, rng *rand.Rand, size int, palette []color.RGBA) {
 	centerY := size / 3
-
-	// Small bright cockpit area - draw symmetrically
-	c := palette[0]
-	c.R = min(c.R+50, 255)
-	c.G = min(c.G+50, 255)
-	c.B = min(c.B+50, 255)
-
 	halfWidth := size / 2
+	c := brightenColor(palette[0], 50)
+
+	// Draw a 3x3 symmetric cockpit area centered at (halfWidth, centerY)
 	for dy := -1; dy <= 1; dy++ {
 		y := centerY + dy
 		if y < 0 || y >= size {
 			continue
 		}
-		// Draw center column
-		for dx := -1; dx <= 1; dx++ {
-			// Draw on both sides symmetrically
-			if dx < 0 {
-				leftX := halfWidth + dx
-				rightX := halfWidth - 1 - dx
-				if leftX >= 0 && rightX < size {
-					setPixel(img, leftX, y, c)
-					setPixel(img, rightX, y, c)
-				}
-			} else if dx == 0 && size%2 == 1 {
-				// Center pixel for odd-sized sprites
-				setPixel(img, halfWidth, y, c)
-			} else if dx > 0 {
-				leftX := halfWidth - dx
-				rightX := halfWidth - 1 + dx
-				if leftX >= 0 && rightX < size {
-					setPixel(img, leftX, y, c)
-					setPixel(img, rightX, y, c)
-				}
-			}
+		drawSymmetricRow(img, y, halfWidth, size, c)
+	}
+}
+
+// brightenColor increases RGB values by the given amount, clamping at 255.
+func brightenColor(c color.RGBA, amount uint8) color.RGBA {
+	return color.RGBA{
+		R: min(c.R+amount, 255),
+		G: min(c.G+amount, 255),
+		B: min(c.B+amount, 255),
+		A: c.A,
+	}
+}
+
+// drawSymmetricRow draws a symmetric row of pixels centered at halfWidth.
+func drawSymmetricRow(img *image.RGBA, y, halfWidth, size int, c color.RGBA) {
+	// Draw center pixel for odd-sized sprites
+	if size%2 == 1 {
+		setPixel(img, halfWidth, y, c)
+	}
+
+	// Draw symmetric pairs at offsets ±1
+	for offset := 1; offset <= 1; offset++ {
+		leftX := halfWidth - offset
+		rightX := halfWidth - 1 + offset
+		if size%2 == 1 {
+			rightX = halfWidth + offset
+		}
+		if leftX >= 0 && rightX < size {
+			setPixel(img, leftX, y, c)
+			setPixel(img, rightX, y, c)
 		}
 	}
 }
