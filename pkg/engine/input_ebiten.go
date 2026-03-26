@@ -60,27 +60,34 @@ func (r *EbitenInputReader) mergeTouchInput(state *InputState) {
 	touchIDs := ebiten.AppendTouchIDs(nil)
 	for _, id := range touchIDs {
 		x, y := ebiten.TouchPosition(id)
+		r.mapTouchToRotation(x, state)
+		r.mapTouchToAction(x, y, state)
+	}
+}
 
-		// Calculate region boundaries
-		leftThird := r.screenWidth / 3
-		rightThird := r.screenWidth * 2 / 3
-		topHalf := r.screenHeight / 2
+// mapTouchToRotation sets rotation state based on horizontal touch position.
+func (r *EbitenInputReader) mapTouchToRotation(x int, state *InputState) {
+	leftThird := r.screenWidth / 3
+	rightThird := r.screenWidth * 2 / 3
 
-		// Check horizontal position for rotation
-		if x < leftThird {
-			state.RotateLeft = true
-		} else if x > rightThird {
-			state.RotateRight = true
-		}
+	if x < leftThird {
+		state.RotateLeft = true
+	} else if x > rightThird {
+		state.RotateRight = true
+	}
+}
 
-		// Check vertical position for thrust/fire
-		// Center column only (middle third)
-		if x >= leftThird && x <= rightThird {
-			if y > topHalf {
-				state.Thrust = true
-			} else {
-				state.Fire = true
-			}
+// mapTouchToAction sets thrust or fire based on vertical touch in center column.
+func (r *EbitenInputReader) mapTouchToAction(x, y int, state *InputState) {
+	leftThird := r.screenWidth / 3
+	rightThird := r.screenWidth * 2 / 3
+	topHalf := r.screenHeight / 2
+
+	if x >= leftThird && x <= rightThird {
+		if y > topHalf {
+			state.Thrust = true
+		} else {
+			state.Fire = true
 		}
 	}
 }

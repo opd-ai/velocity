@@ -743,31 +743,48 @@ func (g *Game) drawGameplay(screen *ebiten.Image) {
 func (g *Game) drawParticles(screen *ebiten.Image) {
 	particles := g.particleSystem.GetParticles()
 	for _, p := range particles {
-		// Calculate alpha based on remaining life
-		alpha := float32(p.Life / p.MaxLife)
-		if alpha < 0 {
-			alpha = 0
-		}
+		col := computeParticleColor(p)
+		size := clampParticleSize(int(p.Size))
+		g.renderParticlePixels(screen, p.X, p.Y, size, col)
+	}
+}
 
-		// Draw particle as a filled square
-		col := p.Color
-		col.A = uint8(float32(col.A) * alpha)
+// computeParticleColor applies alpha fade based on remaining life.
+func computeParticleColor(p rendering.Particle) color.Color {
+	alpha := float32(p.Life / p.MaxLife)
+	if alpha < 0 {
+		alpha = 0
+	}
+	col := p.Color
+	col.A = uint8(float32(col.A) * alpha)
+	return col
+}
 
-		// Create a small colored image for the particle
-		size := int(p.Size)
-		if size < 1 {
-			size = 1
-		}
-		for dy := 0; dy < size; dy++ {
-			for dx := 0; dx < size; dx++ {
-				x := int(p.X) + dx - size/2
-				y := int(p.Y) + dy - size/2
-				if x >= 0 && x < g.cfg.Display.Width && y >= 0 && y < g.cfg.Display.Height {
-					screen.Set(x, y, col)
-				}
+// clampParticleSize ensures minimum particle size of 1 pixel.
+func clampParticleSize(size int) int {
+	if size < 1 {
+		return 1
+	}
+	return size
+}
+
+// renderParticlePixels draws a filled square particle at the given position.
+func (g *Game) renderParticlePixels(screen *ebiten.Image, px, py float64, size int, col color.Color) {
+	halfSize := size / 2
+	for dy := 0; dy < size; dy++ {
+		for dx := 0; dx < size; dx++ {
+			x := int(px) + dx - halfSize
+			y := int(py) + dy - halfSize
+			if g.isWithinScreen(x, y) {
+				screen.Set(x, y, col)
 			}
 		}
 	}
+}
+
+// isWithinScreen checks if coordinates are within screen bounds.
+func (g *Game) isWithinScreen(x, y int) bool {
+	return x >= 0 && x < g.cfg.Display.Width && y >= 0 && y < g.cfg.Display.Height
 }
 
 // drawEntity renders a single entity with its sprite and rotation.
@@ -815,47 +832,66 @@ func (g *Game) drawEntity(screen *ebiten.Image, e engine.Entity, cullContext *re
 
 // getSpriteImage returns the ebiten.Image for an entity, generating and caching it if needed.
 func (g *Game) getSpriteImage(e engine.Entity, defaultSize int) *ebiten.Image {
-	var cacheKey string
-	var rgbaImg *image.RGBA
-
-	// Get sprite component if available
-	if spriteComp, hasSprite := g.world.GetComponent(e, "sprite"); hasSprite {
-		sprite := spriteComp.(*rendering.SpriteComponent)
-		cacheKey = fmt.Sprintf("%s:%d:%d", g.renderer.GetGenre(), sprite.Type, sprite.Variant)
-
-		// Check ebiten image cache first
-		if img, ok := g.ebitenImageCache[cacheKey]; ok {
-			return img
-		}
-
-		// Generate the sprite based on type
-		switch sprite.Type {
-		case rendering.SpriteTypeShip:
-			rgbaImg = g.renderer.GetOrCreateShipSprite(sprite.Variant, sprite.Size)
-		case rendering.SpriteTypeEnemy:
-			rgbaImg = g.renderer.GetOrCreateEnemySprite(sprite.Variant, sprite.Size)
-		case rendering.SpriteTypeProjectile:
-			rgbaImg = g.renderer.GetOrCreateProjectileSprite(sprite.Variant, sprite.Size)
-		}
-	} else if _, hasProjectile := g.world.GetComponent(e, "projectile"); hasProjectile {
-		// Projectile without sprite component - use default projectile sprite
-		cacheKey = fmt.Sprintf("%s:projectile:0", g.renderer.GetGenre())
-		if img, ok := g.ebitenImageCache[cacheKey]; ok {
-			return img
-		}
-		rgbaImg = g.renderer.GetOrCreateProjectileSprite(0, DefaultProjectileSize)
-	} else {
+	cacheKey, rgbaImg := g.resolveEntitySprite(e)
+	if cacheKey == "" {
 		return nil
 	}
 
+	if img, ok := g.ebitenImageCache[cacheKey]; ok {
+		return img
+	}
+
+	return g.cacheConvertedSprite(cacheKey, rgbaImg)
+}
+
+// resolveEntitySprite determines the cache key and generates the sprite for an entity.
+func (g *Game) resolveEntitySprite(e engine.Entity) (string, *image.RGBA) {
+	if spriteComp, hasSprite := g.world.GetComponent(e, "sprite"); hasSprite {
+		return g.resolveSpriteComponent(spriteComp.(*rendering.SpriteComponent))
+	}
+
+	if _, hasProjectile := g.world.GetComponent(e, "projectile"); hasProjectile {
+		return g.resolveDefaultProjectile()
+	}
+
+	return "", nil
+}
+
+// resolveSpriteComponent generates sprite based on the component type.
+func (g *Game) resolveSpriteComponent(sprite *rendering.SpriteComponent) (string, *image.RGBA) {
+	cacheKey := fmt.Sprintf("%s:%d:%d", g.renderer.GetGenre(), sprite.Type, sprite.Variant)
+	rgbaImg := g.generateSpriteByType(sprite)
+	return cacheKey, rgbaImg
+}
+
+// generateSpriteByType dispatches to the appropriate sprite generator.
+func (g *Game) generateSpriteByType(sprite *rendering.SpriteComponent) *image.RGBA {
+	switch sprite.Type {
+	case rendering.SpriteTypeShip:
+		return g.renderer.GetOrCreateShipSprite(sprite.Variant, sprite.Size)
+	case rendering.SpriteTypeEnemy:
+		return g.renderer.GetOrCreateEnemySprite(sprite.Variant, sprite.Size)
+	case rendering.SpriteTypeProjectile:
+		return g.renderer.GetOrCreateProjectileSprite(sprite.Variant, sprite.Size)
+	default:
+		return nil
+	}
+}
+
+// resolveDefaultProjectile returns the default projectile sprite key and image.
+func (g *Game) resolveDefaultProjectile() (string, *image.RGBA) {
+	cacheKey := fmt.Sprintf("%s:projectile:0", g.renderer.GetGenre())
+	rgbaImg := g.renderer.GetOrCreateProjectileSprite(0, DefaultProjectileSize)
+	return cacheKey, rgbaImg
+}
+
+// cacheConvertedSprite converts RGBA to ebiten.Image and caches the result.
+func (g *Game) cacheConvertedSprite(cacheKey string, rgbaImg *image.RGBA) *ebiten.Image {
 	if rgbaImg == nil {
 		return nil
 	}
-
-	// Convert *image.RGBA to *ebiten.Image
 	ebitenImg := ebiten.NewImageFromImage(rgbaImg)
 	g.ebitenImageCache[cacheKey] = ebitenImg
-
 	return ebitenImg
 }
 

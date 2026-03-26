@@ -100,35 +100,50 @@ func fillCenterColumn(img *image.RGBA, rng *rand.Rand, size int, fillChance floa
 
 // GenerateProjectileSprite creates a procedurally generated projectile sprite.
 func GenerateProjectileSprite(rng *rand.Rand, genreID string, size int) *image.RGBA {
-	if size < 4 {
-		size = 4
-	}
-
+	size = clampProjectileSize(size)
 	img := image.NewRGBA(image.Rect(0, 0, size, size))
+	c := selectProjectileColor(rng, genreID)
+	drawDiamondPattern(img, size, c)
+	return img
+}
+
+// clampProjectileSize ensures minimum projectile size of 4 pixels.
+func clampProjectileSize(size int) int {
+	if size < 4 {
+		return 4
+	}
+	return size
+}
+
+// selectProjectileColor picks a color from the genre palette or uses default.
+func selectProjectileColor(rng *rand.Rand, genreID string) color.RGBA {
 	preset := genre.GetPreset(genreID)
 	palette := preset.Colors
-
 	if len(palette) == 0 {
-		palette = []color.RGBA{{R: 255, G: 255, B: 100, A: 255}}
+		return color.RGBA{R: 255, G: 255, B: 100, A: 255}
 	}
+	return palette[rng.Intn(len(palette))]
+}
 
-	// Projectiles are simple symmetric patterns
-	c := palette[rng.Intn(len(palette))]
+// drawDiamondPattern draws a diamond/cross pattern for the projectile.
+func drawDiamondPattern(img *image.RGBA, size int, c color.RGBA) {
 	centerX := size / 2
 	centerY := size / 2
-
-	// Simple diamond/cross pattern
+	halfSize := size / 2
 	for y := 0; y < size; y++ {
 		for x := 0; x < size; x++ {
-			dx := abs(x - centerX)
-			dy := abs(y - centerY)
-			if dx+dy <= size/2 {
+			if isDiamondPixel(x, y, centerX, centerY, halfSize) {
 				setPixel(img, x, y, c)
 			}
 		}
 	}
+}
 
-	return img
+// isDiamondPixel checks if a pixel falls within the diamond pattern.
+func isDiamondPixel(x, y, centerX, centerY, halfSize int) bool {
+	dx := abs(x - centerX)
+	dy := abs(y - centerY)
+	return dx+dy <= halfSize
 }
 
 // shouldFillPixel determines if a pixel should be filled based on position.

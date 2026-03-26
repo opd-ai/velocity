@@ -59,27 +59,34 @@ func (ws *WeaponSystem) updateEntityWeapon(e engine.Entity, dt float64) {
 	}
 
 	weapon := weaponComp.(*WeaponComponent)
+	ws.tickWeaponCooldowns(weapon, dt)
 
-	// Update weapon cooldowns
+	if ws.isPlayerEntity(e) {
+		ws.handlePlayerFiring(e, weapon)
+	}
+}
+
+// tickWeaponCooldowns updates cooldown timers for all weapons on a component.
+func (ws *WeaponSystem) tickWeaponCooldowns(weapon *WeaponComponent, dt float64) {
 	if weapon.Primary != nil {
 		weapon.Primary.Update(dt)
 	}
 	if weapon.Secondary != nil {
 		weapon.Secondary.Update(dt)
 	}
+}
 
-	// Check if this is the player and fire is pressed
+// isPlayerEntity checks if the entity has the "player" collision tag.
+func (ws *WeaponSystem) isPlayerEntity(e engine.Entity) bool {
 	tagComp, hasTag := ws.world.GetComponent(e, "collisiontag")
 	if !hasTag {
-		return
+		return false
 	}
+	return tagComp.(*CollisionTag).Tag == "player"
+}
 
-	tag := tagComp.(*CollisionTag)
-	if tag.Tag != "player" {
-		return
-	}
-
-	// Handle player firing
+// handlePlayerFiring attempts to fire the player's primary weapon.
+func (ws *WeaponSystem) handlePlayerFiring(e engine.Entity, weapon *WeaponComponent) {
 	if ws.input != nil && ws.input.IsFirePressed() {
 		ws.tryFire(e, weapon.Primary, "player")
 	}
