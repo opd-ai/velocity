@@ -1,5 +1,8 @@
 // Package networking provides client-server netcode, connection management,
 // and lag compensation for multiplayer gameplay.
+//
+// TODO(v5.0): This package is a stub. Full implementation planned for v5.0.
+// See ROADMAP.md v5.0 milestone and GAPS.md "v5.0+ Features Are Stubs" section.
 package networking
 
 // Server represents a game server instance.

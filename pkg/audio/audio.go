@@ -5,15 +5,32 @@ import (
 	"encoding/binary"
 	"math"
 	"sync"
+
+	"github.com/hajimehoshi/ebiten/v2/audio"
 )
 
+// Audio system constants
 const (
-	sampleRate     = 44100
-	bytesPerSample = 4 // 16-bit stereo
+	// SampleRate is the audio sample rate in Hz.
+	SampleRate = 44100
+	// BytesPerSample is the number of bytes per sample (16-bit stereo).
+	BytesPerSample = 4
 )
 
-// Pentatonic scale frequencies for procedural melodies (C4, D4, E4, G4, A4).
-var pentatonic = []float64{261.63, 293.66, 329.63, 392.00, 440.00}
+// Pentatonic scale note frequencies in Hz.
+// C4, D4, E4, G4, A4 - a pleasant, non-dissonant scale for procedural music.
+const (
+	NoteC4 = 261.63
+	NoteD4 = 293.66
+	NoteE4 = 329.63
+	NoteG4 = 392.00
+	NoteA4 = 440.00
+)
+
+// PentatonicScale returns the standard PentatonicScale() scale frequencies.
+func PentatonicScale() []float64 {
+	return []float64{NoteC4, NoteD4, NoteE4, NoteG4, NoteA4}
+}
 
 // Manager handles all audio playback.
 type Manager struct {
@@ -30,6 +47,9 @@ type Manager struct {
 
 	playerX float64
 	playerY float64
+
+	// Ebitengine audio context for actual playback
+	audioContext *audio.Context
 }
 
 // SFXRequest represents a queued sound effect.
@@ -41,13 +61,18 @@ type SFXRequest struct {
 
 // NewManager creates a new audio manager.
 func NewManager() *Manager {
-	return &Manager{
+	m := &Manager{
 		genreID:      "scifi",
 		masterVolume: 0.8,
 		musicVolume:  0.6,
 		sfxVolume:    0.8,
 		sfxQueue:     make([]SFXRequest, 0, 16),
 	}
+
+	// Initialize Ebitengine audio context (lazy initialization on first use)
+	// The context is created when Update() is first called to avoid
+	// initialization issues before the game loop starts.
+	return m
 }
 
 // SetGenre switches audio assets to match the given genre.
@@ -106,19 +131,57 @@ func (m *Manager) StopMusic() {
 
 // Update advances the audio state each frame.
 func (m *Manager) Update() {
+	// Lazy-initialize audio context on first update
+	if m.audioContext == nil {
+		m.audioContext = audio.NewContext(SampleRate)
+	}
+
 	// Process any queued SFX
 	m.sfxMu.Lock()
+	queue := make([]SFXRequest, len(m.sfxQueue))
+	copy(queue, m.sfxQueue)
 	m.sfxQueue = m.sfxQueue[:0] // Clear processed queue
 	m.sfxMu.Unlock()
+
+	// Play each queued SFX
+	for _, req := range queue {
+		m.playSFXNow(req)
+	}
+}
+
+// playSFXNow plays a sound effect immediately using the audio context.
+func (m *Manager) playSFXNow(req SFXRequest) {
+	if m.audioContext == nil {
+		return
+	}
+
+	// Get the raw PCM data for this SFX
+	data := GetSFXData(req.Name)
+	if len(data) == 0 {
+		return
+	}
+
+	// Apply spatial audio if requested
+	if req.Spatial {
+		vol, pan := CalculateSpatialVolume(m.playerX, m.playerY, req.X, req.Y, 500.0)
+		data = ApplySpatialAudio(data, vol*m.sfxVolume*m.masterVolume, pan)
+	} else {
+		// Apply volume scaling for non-spatial audio
+		data = ApplySpatialAudio(data, m.sfxVolume*m.masterVolume, 0)
+	}
+
+	// Create an audio player from the PCM data
+	player := m.audioContext.NewPlayerFromBytes(data)
+	player.Play()
 }
 
 // GenerateTone creates PCM audio data for a simple tone.
 func GenerateTone(frequency, duration float64) []byte {
-	numSamples := int(duration * sampleRate)
-	buf := make([]byte, numSamples*bytesPerSample)
+	numSamples := int(duration * SampleRate)
+	buf := make([]byte, numSamples*BytesPerSample)
 
 	for i := 0; i < numSamples; i++ {
-		t := float64(i) / sampleRate
+		t := float64(i) / SampleRate
 		sample := math.Sin(2 * math.Pi * frequency * t)
 
 		// Apply envelope to avoid clicks
@@ -137,13 +200,13 @@ func GenerateTone(frequency, duration float64) []byte {
 // GenerateLaserSFX creates PCM data for a laser sound.
 func GenerateLaserSFX() []byte {
 	duration := 0.1
-	numSamples := int(duration * sampleRate)
-	buf := make([]byte, numSamples*bytesPerSample)
+	numSamples := int(duration * SampleRate)
+	buf := make([]byte, numSamples*BytesPerSample)
 
 	baseFreq := 880.0 // A5
 
 	for i := 0; i < numSamples; i++ {
-		t := float64(i) / sampleRate
+		t := float64(i) / SampleRate
 		progress := float64(i) / float64(numSamples)
 
 		// Frequency sweep down
@@ -167,8 +230,8 @@ func GenerateLaserSFX() []byte {
 // GenerateExplosionSFX creates PCM data for an explosion sound.
 func GenerateExplosionSFX() []byte {
 	duration := 0.3
-	numSamples := int(duration * sampleRate)
-	buf := make([]byte, numSamples*bytesPerSample)
+	numSamples := int(duration * SampleRate)
+	buf := make([]byte, numSamples*BytesPerSample)
 
 	for i := 0; i < numSamples; i++ {
 		progress := float64(i) / float64(numSamples)
@@ -178,7 +241,7 @@ func GenerateExplosionSFX() []byte {
 		envelope := math.Exp(-progress * 5.0)
 
 		// Add low frequency rumble
-		t := float64(i) / sampleRate
+		t := float64(i) / SampleRate
 		rumble := math.Sin(2*math.Pi*60*t) * 0.3
 
 		sample := (noise*0.7 + rumble) * envelope * 0.4
@@ -194,13 +257,13 @@ func GenerateExplosionSFX() []byte {
 // GeneratePowerupSFX creates PCM data for a powerup collect sound.
 func GeneratePowerupSFX() []byte {
 	duration := 0.2
-	numSamples := int(duration * sampleRate)
-	buf := make([]byte, numSamples*bytesPerSample)
+	numSamples := int(duration * SampleRate)
+	buf := make([]byte, numSamples*BytesPerSample)
 
 	baseFreq := 440.0
 
 	for i := 0; i < numSamples; i++ {
-		t := float64(i) / sampleRate
+		t := float64(i) / SampleRate
 		progress := float64(i) / float64(numSamples)
 
 		// Rising frequency sweep
@@ -223,13 +286,13 @@ func GeneratePowerupSFX() []byte {
 // GenerateMenuSelectSFX creates PCM data for a menu selection sound.
 func GenerateMenuSelectSFX() []byte {
 	duration := 0.05
-	numSamples := int(duration * sampleRate)
-	buf := make([]byte, numSamples*bytesPerSample)
+	numSamples := int(duration * SampleRate)
+	buf := make([]byte, numSamples*BytesPerSample)
 
 	freq := 660.0 // E5
 
 	for i := 0; i < numSamples; i++ {
-		t := float64(i) / sampleRate
+		t := float64(i) / SampleRate
 		sample := math.Sin(2 * math.Pi * freq * t)
 
 		envelope := applyEnvelope(i, numSamples)
@@ -310,8 +373,8 @@ func ApplySpatialAudio(data []byte, volume, pan float64) []byte {
 
 // applyEnvelope applies attack/release envelope to avoid clicks.
 func applyEnvelope(sampleIndex, totalSamples int) float64 {
-	attackSamples := int(0.01 * sampleRate)
-	releaseSamples := int(0.01 * sampleRate)
+	attackSamples := int(0.01 * SampleRate)
+	releaseSamples := int(0.01 * SampleRate)
 
 	if sampleIndex < attackSamples {
 		return float64(sampleIndex) / float64(attackSamples)
@@ -372,7 +435,7 @@ func GetGenreParams(genreID string) GenreAudioParams {
 	case "scifi":
 		return GenreAudioParams{
 			BaseFrequency: 220.0,
-			Scale:         pentatonic,
+			Scale:         PentatonicScale(),
 			Tempo:         120.0,
 			WaveformMix:   0.3,
 		}
@@ -393,7 +456,7 @@ func GetGenreParams(genreID string) GenreAudioParams {
 	case "cyberpunk":
 		return GenreAudioParams{
 			BaseFrequency: 330.0,
-			Scale:         pentatonic,
+			Scale:         PentatonicScale(),
 			Tempo:         140.0,
 			WaveformMix:   0.7,
 		}
@@ -407,7 +470,7 @@ func GetGenreParams(genreID string) GenreAudioParams {
 	default:
 		return GenreAudioParams{
 			BaseFrequency: 220.0,
-			Scale:         pentatonic,
+			Scale:         PentatonicScale(),
 			Tempo:         120.0,
 			WaveformMix:   0.3,
 		}

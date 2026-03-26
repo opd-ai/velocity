@@ -1,4 +1,4 @@
-package errors
+package gameerrors
 
 import (
 	"errors"

@@ -1,4 +1,7 @@
 // Package security provides E2E encrypted transport and authentication tokens.
+//
+// TODO(v5.0): This package is a stub. Full implementation planned for v5.0.
+// See ROADMAP.md v5.0 milestone and GAPS.md "v5.0+ Features Are Stubs" section.
 package security
 
 import "errors"

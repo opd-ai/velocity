@@ -1,8 +1,11 @@
+//go:build !noebiten
+
 // Velocity — a procedural arcade shooter built with Ebitengine.
 package main
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 	"log"
 	"math"
@@ -22,6 +25,18 @@ import (
 	"github.com/opd-ai/velocity/pkg/saveload"
 	"github.com/opd-ai/velocity/pkg/ux"
 	"github.com/opd-ai/velocity/pkg/version"
+)
+
+// Physics tuning constants - adjust these to change ship handling feel.
+const (
+	// DefaultThrustForce is the acceleration applied when thrusting.
+	DefaultThrustForce = 200.0
+	// DefaultRotationSpeed is the angular velocity when turning (radians/sec).
+	DefaultRotationSpeed = 4.0
+	// DefaultDragCoeff is the velocity dampening factor per frame (0-1).
+	DefaultDragCoeff = 0.98
+	// DefaultMaxSpeed is the maximum velocity magnitude.
+	DefaultMaxSpeed = 300.0
 )
 
 // savePath returns the path to the save file.
@@ -71,22 +86,30 @@ type Game struct {
 
 	// Save state
 	hasSavedGame bool
+
+	// Tutorial system
+	tutorial *ux.Tutorial
+
+	// Sprite rendering cache (converts *image.RGBA to *ebiten.Image)
+	ebitenImageCache map[string]*ebiten.Image
 }
 
 // NewGame initializes a new game instance from configuration.
 func NewGame(cfg *config.Config) *Game {
 	g := &Game{
-		cfg:      cfg,
-		world:    engine.NewWorld(),
-		camera:   engine.NewCamera(),
-		renderer: rendering.NewRenderer(),
-		audio:    audio.NewManager(),
-		hud:      ux.NewHUD(),
-		menu:     ux.NewMenu(),
+		cfg:              cfg,
+		world:            engine.NewWorld(),
+		camera:           engine.NewCamera(),
+		renderer:         rendering.NewRenderer(),
+		audio:            audio.NewManager(),
+		hud:              ux.NewHUD(),
+		menu:             ux.NewMenu(),
+		ebitenImageCache: make(map[string]*ebiten.Image),
 	}
 
 	genre := cfg.Gameplay.Genre
 	g.renderer.SetGenre(genre)
+	g.renderer.SetSeed(cfg.Gameplay.Seed)
 	g.audio.SetGenre(genre)
 	g.hud.SetGenre(genre)
 	g.menu.SetGenre(genre)
@@ -143,10 +166,10 @@ func (g *Game) initializeSystems() {
 
 	// Physics system
 	physicsConfig := engine.PhysicsConfig{
-		ThrustForce:   200.0,
-		RotationSpeed: 4.0,
-		DragCoeff:     0.98,
-		MaxSpeed:      300.0,
+		ThrustForce:   DefaultThrustForce,
+		RotationSpeed: DefaultRotationSpeed,
+		DragCoeff:     DefaultDragCoeff,
+		MaxSpeed:      DefaultMaxSpeed,
 	}
 	g.physicsSystem = engine.NewPhysicsSystem(g.world, physicsConfig)
 
@@ -220,6 +243,13 @@ func (g *Game) startNewGame() {
 	g.comboTimer = 0
 	g.waveManager.Reset()
 
+	// Enable tutorial for first-run (no save file exists)
+	if !g.hasSavedGame {
+		g.tutorial = ux.NewTutorial()
+	} else {
+		g.tutorial = nil
+	}
+
 	// Spawn player at center
 	g.spawnPlayer()
 
@@ -289,6 +319,11 @@ func (g *Game) clearAllEntities() {
 // onEnemyKilled handles scoring when an enemy dies.
 func (g *Game) onEnemyKilled(entity engine.Entity) {
 	g.waveManager.OnEnemyKilled()
+
+	// Mark tutorial kill action
+	if g.tutorial != nil && g.tutorial.Active {
+		g.tutorial.MarkAction("kill")
+	}
 
 	// Base score
 	baseScore := int64(100)
@@ -489,6 +524,9 @@ func (g *Game) updateGameplay(dt float64) {
 	g.inputSystem.Update(dt)
 	g.world.Update(dt) // Updates physics and arena systems
 
+	// Track tutorial actions
+	g.updateTutorialActions()
+
 	// Combat systems
 	g.weaponSystem.Update(dt)
 	g.projectileSystem.Update(dt)
@@ -511,6 +549,26 @@ func (g *Game) updateGameplay(dt float64) {
 	g.hud.Update(health, 0, g.score, g.waveManager.CurrentWave(), g.combo)
 }
 
+// updateTutorialActions checks player input and marks tutorial progress.
+func (g *Game) updateTutorialActions() {
+	if g.tutorial == nil || !g.tutorial.Active {
+		return
+	}
+
+	state := g.inputSystem.GetState()
+
+	// Check actions based on current step
+	if state.Thrust {
+		g.tutorial.MarkAction("thrust")
+	}
+	if state.RotateLeft || state.RotateRight {
+		g.tutorial.MarkAction("rotate")
+	}
+	if state.Fire {
+		g.tutorial.MarkAction("fire")
+	}
+}
+
 // Draw renders the current frame.
 func (g *Game) Draw(screen *ebiten.Image) {
 	// Background color based on genre
@@ -527,12 +585,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.drawHUD(screen)
 	}
 
+	// Draw tutorial overlay if active
+	if g.stateManager.IsPlaying() && g.tutorial != nil && g.tutorial.Active {
+		g.drawTutorial(screen)
+	}
+
 	// Draw menus
 	if g.stateManager.IsMenuActive() {
 		g.drawMenu(screen)
 	}
 
-	// Debug info
+	// Display FPS and version
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("Velocity %s | FPS: %.0f", version.GetVersion(), ebiten.ActualFPS()))
 }
 
@@ -552,37 +615,123 @@ func (g *Game) getBackgroundColor() color.RGBA {
 	}
 }
 
-// drawGameplay renders all game entities.
+// drawGameplay renders all game entities using procedural sprites.
 func (g *Game) drawGameplay(screen *ebiten.Image) {
-	// Draw entities (simplified - just debug rectangles for now)
+	// Set up viewport for culling
+	viewport := rendering.NewViewport(g.cfg.Display.Width, g.cfg.Display.Height)
+	cullContext := rendering.NewCullContext(viewport, 32) // 32px margin for partial visibility
+
+	// Create draw batches for efficient rendering
+	batches := rendering.CreateDrawBatches(g.world)
+	batches = rendering.SortBatchesByRenderOrder(batches)
+
+	// Render each batch
+	for _, batch := range batches {
+		for _, e := range batch.Entities {
+			g.drawEntity(screen, e, cullContext)
+		}
+	}
+
+	// Also render entities without sprite components (e.g., projectiles with projectile tag only)
 	g.world.ForEachEntity(func(e engine.Entity) {
-		pos, hasPos := g.world.GetComponent(e, "position")
-		if !hasPos {
+		// Skip entities that were already rendered via batches
+		if _, hasSprite := g.world.GetComponent(e, "sprite"); hasSprite {
 			return
 		}
-		p := pos.(*engine.Position)
+		// Only render projectiles that don't have sprite components
+		if _, hasProjectile := g.world.GetComponent(e, "projectile"); hasProjectile {
+			g.drawEntity(screen, e, cullContext)
+		}
+	})
+}
 
-		// Determine color based on entity type
-		var entityColor color.RGBA
-		if tag, ok := g.world.GetComponent(e, "collisiontag"); ok {
-			ct := tag.(*combat.CollisionTag)
-			switch ct.Tag {
-			case "player":
-				entityColor = color.RGBA{R: 0, G: 255, B: 100, A: 255}
-			case "enemy":
-				entityColor = color.RGBA{R: 255, G: 50, B: 50, A: 255}
-			default:
-				entityColor = color.RGBA{R: 255, G: 255, B: 0, A: 255}
-			}
-		} else if _, ok := g.world.GetComponent(e, "projectile"); ok {
-			entityColor = color.RGBA{R: 255, G: 255, B: 100, A: 255}
-		} else {
-			return // Skip entities without relevant components
+// drawEntity renders a single entity with its sprite and rotation.
+func (g *Game) drawEntity(screen *ebiten.Image, e engine.Entity, cullContext *rendering.CullContext) {
+	posComp, hasPos := g.world.GetComponent(e, "position")
+	if !hasPos {
+		return
+	}
+	pos := posComp.(*engine.Position)
+
+	// Determine sprite size (default to 16 for entities without sprite component)
+	spriteSize := 16
+	if spriteComp, hasSprite := g.world.GetComponent(e, "sprite"); hasSprite {
+		spriteSize = spriteComp.(*rendering.SpriteComponent).Size
+	}
+
+	// Apply viewport culling
+	if !cullContext.ShouldRender(pos.X, pos.Y, float64(spriteSize), float64(spriteSize)) {
+		return
+	}
+
+	// Get rotation if available
+	var angle float64
+	if rotComp, hasRot := g.world.GetComponent(e, "rotation"); hasRot {
+		angle = rotComp.(*engine.Rotation).Angle
+	}
+
+	// Get or generate the sprite image
+	img := g.getSpriteImage(e, spriteSize)
+	if img == nil {
+		return
+	}
+
+	// Set up draw options with rotation and position
+	opts := &ebiten.DrawImageOptions{}
+
+	// Center the sprite for rotation
+	halfSize := float64(spriteSize) / 2
+	opts.GeoM.Translate(-halfSize, -halfSize)
+	opts.GeoM.Rotate(angle)
+	opts.GeoM.Translate(pos.X, pos.Y)
+
+	screen.DrawImage(img, opts)
+}
+
+// getSpriteImage returns the ebiten.Image for an entity, generating and caching it if needed.
+func (g *Game) getSpriteImage(e engine.Entity, defaultSize int) *ebiten.Image {
+	var cacheKey string
+	var rgbaImg *image.RGBA
+
+	// Get sprite component if available
+	if spriteComp, hasSprite := g.world.GetComponent(e, "sprite"); hasSprite {
+		sprite := spriteComp.(*rendering.SpriteComponent)
+		cacheKey = fmt.Sprintf("%s:%d:%d", g.renderer.GetGenre(), sprite.Type, sprite.Variant)
+
+		// Check ebiten image cache first
+		if img, ok := g.ebitenImageCache[cacheKey]; ok {
+			return img
 		}
 
-		// Draw as simple rectangle
-		ebitenutil.DrawRect(screen, p.X-4, p.Y-4, 8, 8, entityColor)
-	})
+		// Generate the sprite based on type
+		switch sprite.Type {
+		case rendering.SpriteTypeShip:
+			rgbaImg = g.renderer.GetOrCreateShipSprite(sprite.Variant, sprite.Size)
+		case rendering.SpriteTypeEnemy:
+			rgbaImg = g.renderer.GetOrCreateEnemySprite(sprite.Variant, sprite.Size)
+		case rendering.SpriteTypeProjectile:
+			rgbaImg = g.renderer.GetOrCreateProjectileSprite(sprite.Variant, sprite.Size)
+		}
+	} else if _, hasProjectile := g.world.GetComponent(e, "projectile"); hasProjectile {
+		// Projectile without sprite component - use default projectile sprite
+		cacheKey = fmt.Sprintf("%s:projectile:0", g.renderer.GetGenre())
+		if img, ok := g.ebitenImageCache[cacheKey]; ok {
+			return img
+		}
+		rgbaImg = g.renderer.GetOrCreateProjectileSprite(0, 8)
+	} else {
+		return nil
+	}
+
+	if rgbaImg == nil {
+		return nil
+	}
+
+	// Convert *image.RGBA to *ebiten.Image
+	ebitenImg := ebiten.NewImageFromImage(rgbaImg)
+	g.ebitenImageCache[cacheKey] = ebitenImg
+
+	return ebitenImg
 }
 
 // drawHUD renders the heads-up display.
@@ -590,6 +739,37 @@ func (g *Game) drawHUD(screen *ebiten.Image) {
 	hudText := fmt.Sprintf("Score: %d | Wave: %d | Combo: x%d | Health: %.0f",
 		g.hud.Score, g.hud.Wave, g.hud.Combo+1, g.hud.Health)
 	ebitenutil.DebugPrintAt(screen, hudText, 10, g.cfg.Display.Height-20)
+}
+
+// drawTutorial renders the tutorial overlay.
+func (g *Game) drawTutorial(screen *ebiten.Image) {
+	prompt := g.tutorial.CurrentPrompt()
+	if prompt == nil {
+		return
+	}
+
+	width := g.cfg.Display.Width
+	height := g.cfg.Display.Height
+
+	// Draw semi-transparent banner at top of screen
+	y := 60
+
+	// Draw prompt text centered
+	text := prompt.Text
+	textWidth := len(text) * 6 // Approximate character width
+	x := (width - textWidth) / 2
+	ebitenutil.DebugPrintAt(screen, text, x, y)
+
+	// Draw key hint below
+	if prompt.KeyHint != "" {
+		hintText := fmt.Sprintf("Press: %s", prompt.KeyHint)
+		hintWidth := len(hintText) * 6
+		ebitenutil.DebugPrintAt(screen, hintText, (width-hintWidth)/2, y+20)
+	}
+
+	// Draw progress indicator
+	progressText := fmt.Sprintf("Tutorial %d/4", g.tutorial.Step+1)
+	ebitenutil.DebugPrintAt(screen, progressText, (width-len(progressText)*6)/2, height-60)
 }
 
 // drawMenu renders the current menu.

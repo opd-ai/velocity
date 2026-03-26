@@ -1,4 +1,7 @@
 // Package hostplay provides the local-host authoritative server scaffold.
+//
+// TODO(v5.0): This package is a stub. Full implementation planned for v5.0.
+// See ROADMAP.md v5.0 milestone and GAPS.md "v5.0+ Features Are Stubs" section.
 package hostplay
 
 // Host represents a local authoritative game server.

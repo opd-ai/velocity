@@ -1,5 +1,5 @@
-// Package errors provides structured error types for the velocity engine.
-package errors
+// Package gameerrors provides structured error types for the velocity engine.
+package gameerrors
 
 import "fmt"
 

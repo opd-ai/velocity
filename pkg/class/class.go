@@ -1,6 +1,34 @@
 // Package class provides ship hull classes and skill/upgrade trees.
 package class
 
+// Ship hull class base stats - these values define the core balance between
+// ship types and should be tuned via playtesting.
+const (
+	// Scout hull - fast, fragile reconnaissance ship
+	ScoutHealth = 60.0
+	ScoutSpeed  = 300.0
+	ScoutArmor  = 2.0
+	ScoutSlots  = 2
+
+	// Interceptor hull - balanced fighter
+	InterceptorHealth = 80.0
+	InterceptorSpeed  = 260.0
+	InterceptorArmor  = 3.0
+	InterceptorSlots  = 3
+
+	// Gunship hull - heavy assault ship
+	GunshipHealth = 120.0
+	GunshipSpeed  = 180.0
+	GunshipArmor  = 6.0
+	GunshipSlots  = 4
+
+	// Carrier hull - slow capital ship
+	CarrierHealth = 200.0
+	CarrierSpeed  = 120.0
+	CarrierArmor  = 10.0
+	CarrierSlots  = 5
+)
+
 // HullClass represents a ship hull type with base stats.
 type HullClass struct {
 	Name   string
@@ -13,10 +41,10 @@ type HullClass struct {
 // DefaultHulls returns the set of base hull classes.
 func DefaultHulls() []HullClass {
 	return []HullClass{
-		{Name: "scout", Health: 60, Speed: 300, Armor: 2, Slots: 2},
-		{Name: "interceptor", Health: 80, Speed: 260, Armor: 3, Slots: 3},
-		{Name: "gunship", Health: 120, Speed: 180, Armor: 6, Slots: 4},
-		{Name: "carrier", Health: 200, Speed: 120, Armor: 10, Slots: 5},
+		{Name: "scout", Health: ScoutHealth, Speed: ScoutSpeed, Armor: ScoutArmor, Slots: ScoutSlots},
+		{Name: "interceptor", Health: InterceptorHealth, Speed: InterceptorSpeed, Armor: InterceptorArmor, Slots: InterceptorSlots},
+		{Name: "gunship", Health: GunshipHealth, Speed: GunshipSpeed, Armor: GunshipArmor, Slots: GunshipSlots},
+		{Name: "carrier", Health: CarrierHealth, Speed: CarrierSpeed, Armor: CarrierArmor, Slots: CarrierSlots},
 	}
 }
 
