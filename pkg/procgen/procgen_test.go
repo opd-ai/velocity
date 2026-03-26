@@ -21,10 +21,10 @@ func TestGenerator_GenerateWave_Formula(t *testing.T) {
 		waveNumber int
 		wantCount  int
 	}{
-		{1, 3},  // 1 + 2 = 3
-		{5, 7},  // 5 + 2 = 7
+		{1, 3},   // 1 + 2 = 3
+		{5, 7},   // 5 + 2 = 7
 		{10, 12}, // 10 + 2 = 12
-		{0, 2},  // 0 + 2 = 2
+		{0, 2},   // 0 + 2 = 2
 	}
 
 	for _, tt := range tests {

@@ -36,9 +36,9 @@ type CollisionTag struct {
 
 // ProjectileSystem manages projectile movement, lifetime, and collision.
 type ProjectileSystem struct {
-	world      *engine.World
-	toRemove   []engine.Entity
-	onHit      func(projectile, target engine.Entity, damage float64)
+	world    *engine.World
+	toRemove []engine.Entity
+	onHit    func(projectile, target engine.Entity, damage float64)
 }
 
 // NewProjectileSystem creates a new projectile system.

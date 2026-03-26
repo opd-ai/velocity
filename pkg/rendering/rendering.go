@@ -44,7 +44,7 @@ func (r *Renderer) GetGenre() string {
 }
 
 // GetOrCreateShipSprite returns a cached ship sprite or generates a new one.
-func (r *Renderer) GetOrCreateShipSprite(variant int, size int) *image.RGBA {
+func (r *Renderer) GetOrCreateShipSprite(variant, size int) *image.RGBA {
 	key := SpriteKey{GenreID: r.genreID, Type: SpriteTypeShip, Variant: variant}
 	return r.cache.GetOrCreate(key, func() *image.RGBA {
 		return GenerateShipSprite(r.rng, r.genreID, size)
@@ -52,7 +52,7 @@ func (r *Renderer) GetOrCreateShipSprite(variant int, size int) *image.RGBA {
 }
 
 // GetOrCreateEnemySprite returns a cached enemy sprite or generates a new one.
-func (r *Renderer) GetOrCreateEnemySprite(variant int, size int) *image.RGBA {
+func (r *Renderer) GetOrCreateEnemySprite(variant, size int) *image.RGBA {
 	key := SpriteKey{GenreID: r.genreID, Type: SpriteTypeEnemy, Variant: variant}
 	return r.cache.GetOrCreate(key, func() *image.RGBA {
 		return GenerateEnemySprite(r.rng, r.genreID, size)
@@ -60,7 +60,7 @@ func (r *Renderer) GetOrCreateEnemySprite(variant int, size int) *image.RGBA {
 }
 
 // GetOrCreateProjectileSprite returns a cached projectile sprite or generates a new one.
-func (r *Renderer) GetOrCreateProjectileSprite(variant int, size int) *image.RGBA {
+func (r *Renderer) GetOrCreateProjectileSprite(variant, size int) *image.RGBA {
 	key := SpriteKey{GenreID: r.genreID, Type: SpriteTypeProjectile, Variant: variant}
 	return r.cache.GetOrCreate(key, func() *image.RGBA {
 		return GenerateProjectileSprite(r.rng, r.genreID, size)

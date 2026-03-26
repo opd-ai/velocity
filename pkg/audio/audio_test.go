@@ -176,16 +176,16 @@ func TestGetSFXData(t *testing.T) {
 
 func TestCalculateSpatialVolume(t *testing.T) {
 	tests := []struct {
-		name         string
-		listenerX    float64
-		listenerY    float64
-		sourceX      float64
-		sourceY      float64
-		maxDist      float64
-		wantVolume   float64
-		wantPan      float64
-		volumeTol    float64
-		panTol       float64
+		name       string
+		listenerX  float64
+		listenerY  float64
+		sourceX    float64
+		sourceY    float64
+		maxDist    float64
+		wantVolume float64
+		wantPan    float64
+		volumeTol  float64
+		panTol     float64
 	}{
 		{"same position", 0, 0, 0, 0, 100, 1.0, 0, 0.01, 0.01},
 		{"max distance", 0, 0, 100, 0, 100, 0, 0, 0.01, 0.01},

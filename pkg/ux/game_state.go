@@ -160,10 +160,10 @@ func DefaultMenuItems() MenuItems {
 
 // MenuController handles menu navigation and selection.
 type MenuController struct {
-	items       MenuItems
-	selectedIdx int
+	items        MenuItems
+	selectedIdx  int
 	stateManager *GameStateManager
-	onAction    func(action string)
+	onAction     func(action string)
 }
 
 // NewMenuController creates a new menu controller.

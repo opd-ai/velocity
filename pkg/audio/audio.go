@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	sampleRate  = 44100
+	sampleRate     = 44100
 	bytesPerSample = 4 // 16-bit stereo
 )
 
@@ -17,26 +17,26 @@ var pentatonic = []float64{261.63, 293.66, 329.63, 392.00, 440.00}
 
 // Manager handles all audio playback.
 type Manager struct {
-	genreID       string
-	masterVolume  float64
-	musicVolume   float64
-	sfxVolume     float64
-	
-	intensity     float64 // Music intensity level (0.0-1.0)
-	musicPlaying  bool
-	
-	sfxQueue      []SFXRequest
-	sfxMu         sync.Mutex
-	
-	playerX       float64
-	playerY       float64
+	genreID      string
+	masterVolume float64
+	musicVolume  float64
+	sfxVolume    float64
+
+	intensity    float64 // Music intensity level (0.0-1.0)
+	musicPlaying bool
+
+	sfxQueue []SFXRequest
+	sfxMu    sync.Mutex
+
+	playerX float64
+	playerY float64
 }
 
 // SFXRequest represents a queued sound effect.
 type SFXRequest struct {
-	Name     string
-	X, Y     float64 // Position for spatial audio
-	Spatial  bool    // Whether to apply positional audio
+	Name    string
+	X, Y    float64 // Position for spatial audio
+	Spatial bool    // Whether to apply positional audio
 }
 
 // NewManager creates a new audio manager.
@@ -82,7 +82,7 @@ func (m *Manager) PlaySFX(name string) {
 func (m *Manager) PlaySFXAt(name string, x, y float64, spatial bool) {
 	m.sfxMu.Lock()
 	defer m.sfxMu.Unlock()
-	
+
 	// Limit queue size to prevent memory issues
 	if len(m.sfxQueue) < 32 {
 		m.sfxQueue = append(m.sfxQueue, SFXRequest{
@@ -116,21 +116,21 @@ func (m *Manager) Update() {
 func GenerateTone(frequency, duration float64) []byte {
 	numSamples := int(duration * sampleRate)
 	buf := make([]byte, numSamples*bytesPerSample)
-	
+
 	for i := 0; i < numSamples; i++ {
 		t := float64(i) / sampleRate
 		sample := math.Sin(2 * math.Pi * frequency * t)
-		
+
 		// Apply envelope to avoid clicks
 		envelope := applyEnvelope(i, numSamples)
 		sample *= envelope
-		
+
 		// Convert to 16-bit signed int
-		intSample := int16(sample * 32767 * 0.5) // 50% volume
+		intSample := int16(sample * 32767 * 0.5)                      // 50% volume
 		binary.LittleEndian.PutUint16(buf[i*4:], uint16(intSample))   // Left
 		binary.LittleEndian.PutUint16(buf[i*4+2:], uint16(intSample)) // Right
 	}
-	
+
 	return buf
 }
 
@@ -139,28 +139,28 @@ func GenerateLaserSFX() []byte {
 	duration := 0.1
 	numSamples := int(duration * sampleRate)
 	buf := make([]byte, numSamples*bytesPerSample)
-	
+
 	baseFreq := 880.0 // A5
-	
+
 	for i := 0; i < numSamples; i++ {
 		t := float64(i) / sampleRate
 		progress := float64(i) / float64(numSamples)
-		
+
 		// Frequency sweep down
 		freq := baseFreq * (1.0 - progress*0.5)
-		
+
 		// Square wave for laser sound
 		sample := squareWave(2 * math.Pi * freq * t)
-		
+
 		// Apply envelope
 		envelope := applyEnvelope(i, numSamples)
 		sample *= envelope * 0.3
-		
+
 		intSample := int16(sample * 32767)
 		binary.LittleEndian.PutUint16(buf[i*4:], uint16(intSample))
 		binary.LittleEndian.PutUint16(buf[i*4+2:], uint16(intSample))
 	}
-	
+
 	return buf
 }
 
@@ -169,25 +169,25 @@ func GenerateExplosionSFX() []byte {
 	duration := 0.3
 	numSamples := int(duration * sampleRate)
 	buf := make([]byte, numSamples*bytesPerSample)
-	
+
 	for i := 0; i < numSamples; i++ {
 		progress := float64(i) / float64(numSamples)
-		
+
 		// White noise burst with exponential decay
 		noise := (pseudoRandom(uint32(i)) - 0.5) * 2.0
 		envelope := math.Exp(-progress * 5.0)
-		
+
 		// Add low frequency rumble
 		t := float64(i) / sampleRate
 		rumble := math.Sin(2*math.Pi*60*t) * 0.3
-		
+
 		sample := (noise*0.7 + rumble) * envelope * 0.4
-		
+
 		intSample := int16(clamp(sample, -1, 1) * 32767)
 		binary.LittleEndian.PutUint16(buf[i*4:], uint16(intSample))
 		binary.LittleEndian.PutUint16(buf[i*4+2:], uint16(intSample))
 	}
-	
+
 	return buf
 }
 
@@ -196,27 +196,27 @@ func GeneratePowerupSFX() []byte {
 	duration := 0.2
 	numSamples := int(duration * sampleRate)
 	buf := make([]byte, numSamples*bytesPerSample)
-	
+
 	baseFreq := 440.0
-	
+
 	for i := 0; i < numSamples; i++ {
 		t := float64(i) / sampleRate
 		progress := float64(i) / float64(numSamples)
-		
+
 		// Rising frequency sweep
 		freq := baseFreq * (1.0 + progress*1.5)
-		
+
 		// Sine wave for pleasing sound
 		sample := math.Sin(2 * math.Pi * freq * t)
-		
+
 		envelope := applyEnvelope(i, numSamples)
 		sample *= envelope * 0.4
-		
+
 		intSample := int16(sample * 32767)
 		binary.LittleEndian.PutUint16(buf[i*4:], uint16(intSample))
 		binary.LittleEndian.PutUint16(buf[i*4+2:], uint16(intSample))
 	}
-	
+
 	return buf
 }
 
@@ -225,21 +225,21 @@ func GenerateMenuSelectSFX() []byte {
 	duration := 0.05
 	numSamples := int(duration * sampleRate)
 	buf := make([]byte, numSamples*bytesPerSample)
-	
+
 	freq := 660.0 // E5
-	
+
 	for i := 0; i < numSamples; i++ {
 		t := float64(i) / sampleRate
 		sample := math.Sin(2 * math.Pi * freq * t)
-		
+
 		envelope := applyEnvelope(i, numSamples)
 		sample *= envelope * 0.3
-		
+
 		intSample := int16(sample * 32767)
 		binary.LittleEndian.PutUint16(buf[i*4:], uint16(intSample))
 		binary.LittleEndian.PutUint16(buf[i*4+2:], uint16(intSample))
 	}
-	
+
 	return buf
 }
 
@@ -268,20 +268,20 @@ func CalculateSpatialVolume(listenerX, listenerY, sourceX, sourceY, maxDistance 
 	dx := sourceX - listenerX
 	dy := sourceY - listenerY
 	distance := math.Sqrt(dx*dx + dy*dy)
-	
+
 	// Volume attenuation based on distance
 	if distance >= maxDistance {
 		return 0, 0
 	}
 	volume = 1.0 - (distance / maxDistance)
 	volume = math.Max(0, math.Min(1, volume))
-	
+
 	// Pan based on horizontal position (-1 = left, +1 = right)
 	if distance > 0 {
 		pan = dx / maxDistance
 		pan = math.Max(-1, math.Min(1, pan))
 	}
-	
+
 	return volume, pan
 }
 
@@ -289,22 +289,22 @@ func CalculateSpatialVolume(listenerX, listenerY, sourceX, sourceY, maxDistance 
 func ApplySpatialAudio(data []byte, volume, pan float64) []byte {
 	result := make([]byte, len(data))
 	copy(result, data)
-	
+
 	leftVol := volume * (1.0 - math.Max(0, pan))
 	rightVol := volume * (1.0 + math.Min(0, pan))
-	
+
 	for i := 0; i < len(result); i += 4 {
 		// Left channel
 		left := int16(binary.LittleEndian.Uint16(result[i:]))
 		left = int16(float64(left) * leftVol)
 		binary.LittleEndian.PutUint16(result[i:], uint16(left))
-		
+
 		// Right channel
 		right := int16(binary.LittleEndian.Uint16(result[i+2:]))
 		right = int16(float64(right) * rightVol)
 		binary.LittleEndian.PutUint16(result[i+2:], uint16(right))
 	}
-	
+
 	return result
 }
 
@@ -312,7 +312,7 @@ func ApplySpatialAudio(data []byte, volume, pan float64) []byte {
 func applyEnvelope(sampleIndex, totalSamples int) float64 {
 	attackSamples := int(0.01 * sampleRate)
 	releaseSamples := int(0.01 * sampleRate)
-	
+
 	if sampleIndex < attackSamples {
 		return float64(sampleIndex) / float64(attackSamples)
 	}

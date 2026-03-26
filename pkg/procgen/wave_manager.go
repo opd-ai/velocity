@@ -5,12 +5,12 @@ import "github.com/opd-ai/velocity/pkg/engine"
 
 // WaveManager handles wave progression and difficulty ramping.
 type WaveManager struct {
-	world        *engine.World
-	spawner      *WaveSpawner
-	aiSystem     *EnemyAISystem
-	currentWave  int
-	totalKills   int
-	waveKills    int
+	world          *engine.World
+	spawner        *WaveSpawner
+	aiSystem       *EnemyAISystem
+	currentWave    int
+	totalKills     int
+	waveKills      int
 	waveInProgress bool
 	onWaveComplete func(waveNumber int)
 	onWaveStart    func(waveNumber int)

@@ -34,12 +34,12 @@ func TestViewport_Contains(t *testing.T) {
 		x, y   float64
 		inside bool
 	}{
-		{400, 300, true},    // Center
-		{0, 0, true},        // Top-left corner
-		{799, 599, true},    // Just inside bottom-right
-		{800, 600, false},   // Just outside
-		{-1, 0, false},      // Just outside left
-		{400, -1, false},    // Just outside top
+		{400, 300, true},  // Center
+		{0, 0, true},      // Top-left corner
+		{799, 599, true},  // Just inside bottom-right
+		{800, 600, false}, // Just outside
+		{-1, 0, false},    // Just outside left
+		{400, -1, false},  // Just outside top
 	}
 
 	for _, tt := range tests {
@@ -183,8 +183,8 @@ func BenchmarkFilterVisibleEntities(b *testing.B) {
 	for i := 0; i < 200; i++ {
 		e := world.CreateEntity()
 		world.AddComponent(e, "position", &engine.Position{
-			X: float64(i % 100) * 10,
-			Y: float64(i / 100) * 10,
+			X: float64(i%100) * 10,
+			Y: float64(i/100) * 10,
 		})
 	}
 

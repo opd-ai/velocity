@@ -106,7 +106,7 @@ controls:
   thrust: Up
   fire: Enter
 `
-	err = os.WriteFile(filepath.Join(tmpDir, "config.yaml"), []byte(configContent), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "config.yaml"), []byte(configContent), 0o644)
 	if err != nil {
 		t.Fatal(err)
 	}

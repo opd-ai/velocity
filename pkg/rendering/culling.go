@@ -38,10 +38,10 @@ func (v *Viewport) ContainsRect(x, y, width, height float64) bool {
 
 // CullContext holds culling state for a frame.
 type CullContext struct {
-	viewport       *Viewport
-	margin         float64
-	culledCount    int
-	renderedCount  int
+	viewport      *Viewport
+	margin        float64
+	culledCount   int
+	renderedCount int
 }
 
 // NewCullContext creates a new culling context for the given viewport.

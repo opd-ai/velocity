@@ -134,10 +134,10 @@ const (
 
 // EnemyAI holds enemy behavior data.
 type EnemyAI struct {
-	State   EnemyState
-	Speed   float64
-	Damage  float64
-	Target  engine.Entity
+	State  EnemyState
+	Speed  float64
+	Damage float64
+	Target engine.Entity
 }
 
 // EnemyAISystem handles enemy movement and behavior.
