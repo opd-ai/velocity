@@ -3,6 +3,14 @@ package procgen
 
 import "github.com/opd-ai/velocity/pkg/engine"
 
+// Difficulty scaling constants.
+const (
+	// BaseDifficultyMultiplier is the starting difficulty at wave 1.
+	BaseDifficultyMultiplier = 1.0
+	// DifficultyIncreasePerWave is the additional difficulty per wave.
+	DifficultyIncreasePerWave = 0.1
+)
+
 // WaveManager handles wave progression and difficulty ramping.
 type WaveManager struct {
 	world          *engine.World
@@ -89,8 +97,8 @@ func (wm *WaveManager) Update(dt float64) {
 
 // DifficultyMultiplier returns a scaling factor for the current wave.
 func (wm *WaveManager) DifficultyMultiplier() float64 {
-	// Linear difficulty ramp: 1.0 at wave 1, increasing 0.1 per wave
-	return 1.0 + float64(wm.currentWave-1)*0.1
+	// Linear difficulty ramp: BaseDifficultyMultiplier at wave 1, increasing DifficultyIncreasePerWave per wave
+	return BaseDifficultyMultiplier + float64(wm.currentWave-1)*DifficultyIncreasePerWave
 }
 
 // WaveStats returns statistics about wave progression.
@@ -107,8 +115,8 @@ func (wm *WaveManager) GetWaveStats() WaveStats {
 	return WaveStats{
 		CurrentWave:    wm.currentWave,
 		EnemyCount:     wm.aiSystem.CountEnemies(),
-		ExpectedHealth: 10.0 + float64(wm.currentWave)*5.0,
-		ExpectedSpeed:  50.0 + float64(wm.currentWave)*5.0,
+		ExpectedHealth: EnemyBaseHealth + float64(wm.currentWave)*EnemyHealthPerWave,
+		ExpectedSpeed:  EnemyBaseSpeed + float64(wm.currentWave)*EnemySpeedPerWave,
 		TotalKills:     wm.totalKills,
 	}
 }

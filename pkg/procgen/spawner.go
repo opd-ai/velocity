@@ -10,6 +10,32 @@ import (
 	"github.com/opd-ai/velocity/pkg/rendering"
 )
 
+// Enemy stat constants - these define the base difficulty curve.
+const (
+	// EnemyBaseHealth is the starting health for wave 0 enemies.
+	EnemyBaseHealth = 10.0
+	// EnemyHealthPerWave is the additional health gained per wave.
+	EnemyHealthPerWave = 5.0
+	// EnemyBaseSpeed is the starting movement speed for wave 0 enemies.
+	EnemyBaseSpeed = 50.0
+	// EnemySpeedPerWave is the additional speed gained per wave.
+	EnemySpeedPerWave = 5.0
+	// EnemyBaseDamage is the collision damage dealt by enemies.
+	EnemyBaseDamage = 10.0
+)
+
+// Spawn geometry constants.
+const (
+	// SpawnMargin is how far off-screen enemies spawn.
+	SpawnMargin = 50.0
+	// EnemyVariantCount is the number of different enemy sprite variants.
+	EnemyVariantCount = 5
+	// EnemySpriteSizePx is the pixel size for enemy sprites.
+	EnemySpriteSizePx = 16
+	// EnemyBoundingBoxOffset is the offset from sprite center for collision.
+	EnemyBoundingBoxOffset = -8
+)
+
 // EnemyConfig describes an enemy to spawn.
 type EnemyConfig struct {
 	Health float64
@@ -55,18 +81,18 @@ func (ws *WaveSpawner) SpawnWave(waveNumber int) []engine.Entity {
 }
 
 // calculateEnemyStats returns enemy stats for the given wave.
-// Formula: health = 10 + wave*5, speed = 1.0 + wave*0.1
+// Formula: health = EnemyBaseHealth + wave*EnemyHealthPerWave, speed = EnemyBaseSpeed + wave*EnemySpeedPerWave
 func (ws *WaveSpawner) calculateEnemyStats(waveNumber int) EnemyConfig {
 	return EnemyConfig{
-		Health: 10.0 + float64(waveNumber)*5.0,
-		Speed:  50.0 + float64(waveNumber)*5.0, // Scaled for screen units
-		Damage: 10.0,
+		Health: EnemyBaseHealth + float64(waveNumber)*EnemyHealthPerWave,
+		Speed:  EnemyBaseSpeed + float64(waveNumber)*EnemySpeedPerWave,
+		Damage: EnemyBaseDamage,
 	}
 }
 
 // randomOffscreenPosition returns a position just outside the screen.
 func (ws *WaveSpawner) randomOffscreenPosition(rng *rand.Rand) (float64, float64) {
-	margin := 50.0
+	margin := SpawnMargin
 
 	// Pick a random edge: 0=top, 1=right, 2=bottom, 3=left
 	edge := rng.Intn(4)
@@ -105,13 +131,13 @@ func (ws *WaveSpawner) spawnEnemy(x, y float64, config EnemyConfig, variant int)
 
 	ws.world.AddComponent(e, "collisiontag", &combat.CollisionTag{Tag: "enemy"})
 	ws.world.AddComponent(e, "boundingbox", &combat.BoundingBox{
-		X: -8, Y: -8, Width: 16, Height: 16,
+		X: EnemyBoundingBoxOffset, Y: EnemyBoundingBoxOffset, Width: EnemySpriteSizePx, Height: EnemySpriteSizePx,
 	})
 
 	ws.world.AddComponent(e, "sprite", &rendering.SpriteComponent{
 		Type:    rendering.SpriteTypeEnemy,
-		Variant: variant % 5, // 5 enemy variants
-		Size:    16,
+		Variant: variant % EnemyVariantCount,
+		Size:    EnemySpriteSizePx,
 	})
 
 	ws.world.AddComponent(e, "enemy", &EnemyAI{

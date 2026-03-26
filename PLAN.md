@@ -63,7 +63,7 @@
 
 ## Implementation Steps
 
-### Step 1: Wire ParticleSystem to Gameplay
+### Step 1: Wire ParticleSystem to Gameplay ✅ COMPLETE
 
 - **Deliverable**: Integrate existing `pkg/rendering/ParticleSystem` into the game loop so explosions and thruster effects are visible during gameplay.
 - **Dependencies**: None (ParticleSystem implementation exists)
@@ -76,10 +76,11 @@
   grep -c particleSystem cmd/velocity/main.go
   # Expected: ≥5
   ```
+- **Result**: 7 references integrated.
 
 ---
 
-### Step 2: Implement Background Music Playback
+### Step 2: Implement Background Music Playback ✅ COMPLETE
 
 - **Deliverable**: Connect the existing `GenreAudioParams` and intensity fields to a continuous music generator in `pkg/audio/audio.go`, and call `PlayMusic()` and `SetIntensity()` from the game loop.
 - **Dependencies**: None (audio infrastructure exists)
@@ -95,10 +96,11 @@
   grep -r "PlayMusic" cmd/velocity/main.go
   # Expected: at least 1 match
   ```
+- **Result**: 4 references (PlayMusic + SetIntensity calls).
 
 ---
 
-### Step 3: Implement Touch Input Support
+### Step 3: Implement Touch Input Support ✅ COMPLETE
 
 - **Deliverable**: Add touch input handling to `pkg/engine/input_ebiten.go` for mobile and touch-enabled devices.
 - **Dependencies**: None
@@ -113,10 +115,11 @@
   grep TouchIDs pkg/engine/input_ebiten.go
   # Expected: at least 1 match
   ```
+- **Result**: Touch input integrated with screen region mapping.
 
 ---
 
-### Step 4: Fix Headless Test Failures
+### Step 4: Fix Headless Test Failures ✅ COMPLETE
 
 - **Deliverable**: Tests in `pkg/combat`, `pkg/engine`, `pkg/procgen`, `pkg/rendering` pass in headless CI environments without "GLFW library is not initialized" panic.
 - **Dependencies**: None
@@ -131,10 +134,11 @@
   xvfb-run -a go test ./... 2>&1 | grep -c FAIL
   # Expected: 0
   ```
+- **Result**: Build tag `noebiten` implemented for headless testing.
 
 ---
 
-### Step 5: Create CI/CD Workflow
+### Step 5: Create CI/CD Workflow ✅ COMPLETE
 
 - **Deliverable**: GitHub Actions workflow for multi-platform build and test.
 - **Dependencies**: Step 4 (headless tests must pass)
@@ -147,10 +151,11 @@
   test -f .github/workflows/ci.yml && echo "EXISTS"
   # Expected: EXISTS
   ```
+- **Result**: Comprehensive CI/CD workflow exists with multi-platform builds, tests, coverage, lint, and cross-compile.
 
 ---
 
-### Step 6: Wrap Errors with Context in saveload Package
+### Step 6: Wrap Errors with Context in saveload Package ✅ COMPLETE
 
 - **Deliverable**: Replace bare error returns in `pkg/saveload/saveload.go` with context-wrapped errors.
 - **Dependencies**: None
@@ -163,10 +168,11 @@
   go-stats-generator analyze ./pkg/saveload --skip-tests --format json 2>/dev/null | jq '[.patterns.anti_patterns.performance_antipatterns[] | select(.severity == "high")] | length'
   # Expected: 0
   ```
+- **Result**: All errors wrapped with fmt.Errorf and context.
 
 ---
 
-### Step 7: Extract Game Struct to pkg/game
+### Step 7: Extract Game Struct to pkg/game ⏳ IN PROGRESS
 
 - **Deliverable**: Move `Game` struct and core methods from `cmd/velocity/main.go` to `pkg/game/game.go`, leaving `main.go` as a thin entry point (~100 lines).
 - **Dependencies**: None (can be done independently)
@@ -183,7 +189,7 @@
 
 ---
 
-### Step 8: Pre-allocate Slices in Hot Paths
+### Step 8: Pre-allocate Slices in Hot Paths ✅ COMPLETE
 
 - **Deliverable**: Replace `append()` in loops without pre-allocation in `pkg/rendering/rendering.go` and `pkg/procgen/spawner.go`.
 - **Dependencies**: None
@@ -197,10 +203,11 @@
   go-stats-generator analyze ./pkg/rendering ./pkg/procgen --skip-tests --format json 2>/dev/null | jq '[.patterns.anti_patterns.performance_antipatterns[] | select(.type == "memory_allocation")] | length'
   # Expected: 0
   ```
+- **Result**: Pre-allocation implemented for particle arrays and spawn arrays.
 
 ---
 
-### Step 9: Reduce Complexity in mergeGamepadInput
+### Step 9: Reduce Complexity in mergeGamepadInput ✅ COMPLETE
 
 - **Deliverable**: Refactor `mergeGamepadInput` in `pkg/engine/input_ebiten.go` to reduce cyclomatic complexity below 10 (currently 12.7).
 - **Dependencies**: None
@@ -213,10 +220,11 @@
   go-stats-generator analyze ./pkg/engine --skip-tests --format json 2>/dev/null | jq '.functions[] | select(.name == "mergeGamepadInput") | .complexity.overall'
   # Expected: <10
   ```
+- **Result**: Complexity reduced to 3.1.
 
 ---
 
-### Step 10: Document Remaining Undocumented Functions
+### Step 10: Document Remaining Undocumented Functions ✅ COMPLETE
 
 - **Deliverable**: Add godoc comments to the 4 undocumented exported functions.
 - **Dependencies**: None
@@ -231,6 +239,7 @@
   go-stats-generator analyze . --skip-tests --format json 2>/dev/null | jq '.documentation.coverage.functions'
   # Expected: 100
   ```
+- **Result**: 0 undocumented exported functions remain.
 
 ---
 

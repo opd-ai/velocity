@@ -39,6 +39,70 @@ const (
 	DefaultMaxSpeed = 300.0
 )
 
+// Gameplay balance constants.
+const (
+	// DefaultPlayerHealth is the starting health for the player ship.
+	DefaultPlayerHealth = 100.0
+	// DefaultPlayerWeaponDamage is the damage per projectile for primary weapon.
+	DefaultPlayerWeaponDamage = 10.0
+	// DefaultPlayerWeaponCooldown is the cooldown between shots in seconds.
+	DefaultPlayerWeaponCooldown = 0.15
+	// PlayerSpriteSizePx is the pixel size for player and enemy sprites.
+	PlayerSpriteSizePx = 16
+	// PlayerBoundingBoxOffset is the offset from sprite center for collision.
+	PlayerBoundingBoxOffset = -8
+	// DefaultProjectileSize is the pixel size for projectile sprites.
+	DefaultProjectileSize = 8
+)
+
+// Scoring constants.
+const (
+	// BaseKillScore is the base points awarded for killing an enemy.
+	BaseKillScore = 100
+	// WaveBonusMultiplier is multiplied by wave number for wave completion bonus.
+	WaveBonusMultiplier = 100
+	// ComboTimerDuration is how long in seconds before combo resets.
+	ComboTimerDuration = 2.0
+	// ComboTierDivisor is the combo count divisor for multiplier calculation.
+	ComboTierDivisor = 5
+)
+
+// Audio intensity levels.
+const (
+	// AudioIntensityLow is used between waves and at game start.
+	AudioIntensityLow = 0.3
+	// AudioIntensityHigh is used during active wave combat.
+	AudioIntensityHigh = 0.8
+)
+
+// Frame timing.
+const (
+	// FrameDeltaTime is the fixed timestep for physics (1/60 second).
+	FrameDeltaTime = 1.0 / 60.0
+)
+
+// UI layout constants.
+const (
+	// TutorialBannerY is the Y position for tutorial text.
+	TutorialBannerY = 60
+	// TutorialKeyHintOffset is the Y offset from banner for key hint.
+	TutorialKeyHintOffset = 20
+	// TutorialProgressOffset is the Y offset from bottom for progress text.
+	TutorialProgressOffset = 60
+	// CharacterWidthApprox is the approximate width of debug font characters.
+	CharacterWidthApprox = 6
+	// TutorialStepCount is the total number of tutorial steps.
+	TutorialStepCount = 4
+	// MenuItemSpacing is the vertical spacing between menu items.
+	MenuItemSpacing = 20
+	// HUDBottomOffset is the Y offset from bottom for HUD text.
+	HUDBottomOffset = 20
+	// GameOverScoreOffset is the Y offset for score display on game over.
+	GameOverScoreOffset = 80
+	// ViewportCullMargin is the margin in pixels for partial visibility culling.
+	ViewportCullMargin = 32
+)
+
 // savePath returns the path to the save file.
 func savePath() string {
 	home, err := os.UserHomeDir()
@@ -216,7 +280,7 @@ func (g *Game) initializeSystems() {
 	})
 
 	g.waveManager.SetWaveCompleteCallback(func(wave int) {
-		g.score += int64(wave * 100) // Bonus for completing wave
+		g.score += int64(wave * WaveBonusMultiplier)
 		g.audio.PlaySFX("wave_complete")
 	})
 
@@ -261,7 +325,7 @@ func (g *Game) startNewGame() {
 
 	// Start background music
 	g.audio.PlayMusic()
-	g.audio.SetIntensity(0.3) // Low intensity for start
+	g.audio.SetIntensity(AudioIntensityLow)
 
 	// Start first wave after a brief delay
 	g.waveManager.StartNextWave()
@@ -288,25 +352,25 @@ func (g *Game) spawnPlayer() {
 
 	// Player health
 	g.world.AddComponent(g.playerEntity, "health", &combat.Health{
-		Current: 100,
-		Max:     100,
+		Current: DefaultPlayerHealth,
+		Max:     DefaultPlayerHealth,
 	})
 
 	// Collision tag and bounding box
 	g.world.AddComponent(g.playerEntity, "collisiontag", &combat.CollisionTag{Tag: "player"})
 	g.world.AddComponent(g.playerEntity, "boundingbox", &combat.BoundingBox{
-		X: -8, Y: -8, Width: 16, Height: 16,
+		X: PlayerBoundingBoxOffset, Y: PlayerBoundingBoxOffset, Width: PlayerSpriteSizePx, Height: PlayerSpriteSizePx,
 	})
 
 	// Weapon
-	primaryWeapon := combat.NewWeapon(combat.WeaponPrimary, 10.0, 0.15)
+	primaryWeapon := combat.NewWeapon(combat.WeaponPrimary, DefaultPlayerWeaponDamage, DefaultPlayerWeaponCooldown)
 	g.world.AddComponent(g.playerEntity, "weapon", combat.NewWeaponComponent(primaryWeapon))
 
 	// Sprite
 	g.world.AddComponent(g.playerEntity, "sprite", &rendering.SpriteComponent{
 		Type:    rendering.SpriteTypeShip,
 		Variant: 0,
-		Size:    16,
+		Size:    PlayerSpriteSizePx,
 	})
 
 	// Connect player to systems
@@ -342,12 +406,12 @@ func (g *Game) onEnemyKilled(entity engine.Entity) {
 	}
 
 	// Base score
-	baseScore := int64(100)
+	baseScore := int64(BaseKillScore)
 
 	// Apply combo multiplier
 	g.combo++
-	g.comboTimer = 2.0 // Reset combo timer
-	multiplier := 1 + g.combo/5
+	g.comboTimer = ComboTimerDuration
+	multiplier := 1 + g.combo/ComboTierDivisor
 	g.score += baseScore * int64(multiplier)
 
 	g.audio.PlaySFX("explosion")
@@ -460,14 +524,14 @@ func decodePlayerHealth(data []byte) float64 {
 		_, _ = fmt.Sscanf(string(data), "%f", &health)
 	}
 	if health <= 0 {
-		health = 100.0 // Default health
+		health = DefaultPlayerHealth
 	}
 	return health
 }
 
 // Update advances the game state by one tick.
 func (g *Game) Update() error {
-	const dt = 1.0 / 60.0
+	const dt = FrameDeltaTime
 
 	// Handle menu input
 	if g.stateManager.IsMenuActive() {
@@ -559,9 +623,9 @@ func (g *Game) updateGameplay(dt float64) {
 
 	// Update music intensity based on wave state
 	if g.waveManager.WaveInProgress() {
-		g.audio.SetIntensity(0.8) // High intensity during waves
+		g.audio.SetIntensity(AudioIntensityHigh)
 	} else {
-		g.audio.SetIntensity(0.3) // Low intensity between waves
+		g.audio.SetIntensity(AudioIntensityLow)
 	}
 
 	// Auto-advance to next wave if current wave is complete
@@ -647,7 +711,7 @@ func (g *Game) getBackgroundColor() color.RGBA {
 func (g *Game) drawGameplay(screen *ebiten.Image) {
 	// Set up viewport for culling
 	viewport := rendering.NewViewport(g.cfg.Display.Width, g.cfg.Display.Height)
-	cullContext := rendering.NewCullContext(viewport, 32) // 32px margin for partial visibility
+	cullContext := rendering.NewCullContext(viewport, ViewportCullMargin)
 
 	// Create draw batches for efficient rendering
 	batches := rendering.CreateDrawBatches(g.world)
@@ -715,8 +779,8 @@ func (g *Game) drawEntity(screen *ebiten.Image, e engine.Entity, cullContext *re
 	}
 	pos := posComp.(*engine.Position)
 
-	// Determine sprite size (default to 16 for entities without sprite component)
-	spriteSize := 16
+	// Determine sprite size (default to PlayerSpriteSizePx for entities without sprite component)
+	spriteSize := PlayerSpriteSizePx
 	if spriteComp, hasSprite := g.world.GetComponent(e, "sprite"); hasSprite {
 		spriteSize = spriteComp.(*rendering.SpriteComponent).Size
 	}
@@ -780,7 +844,7 @@ func (g *Game) getSpriteImage(e engine.Entity, defaultSize int) *ebiten.Image {
 		if img, ok := g.ebitenImageCache[cacheKey]; ok {
 			return img
 		}
-		rgbaImg = g.renderer.GetOrCreateProjectileSprite(0, 8)
+		rgbaImg = g.renderer.GetOrCreateProjectileSprite(0, DefaultProjectileSize)
 	} else {
 		return nil
 	}
@@ -800,7 +864,7 @@ func (g *Game) getSpriteImage(e engine.Entity, defaultSize int) *ebiten.Image {
 func (g *Game) drawHUD(screen *ebiten.Image) {
 	hudText := fmt.Sprintf("Score: %d | Wave: %d | Combo: x%d | Health: %.0f",
 		g.hud.Score, g.hud.Wave, g.hud.Combo+1, g.hud.Health)
-	ebitenutil.DebugPrintAt(screen, hudText, 10, g.cfg.Display.Height-20)
+	ebitenutil.DebugPrintAt(screen, hudText, 10, g.cfg.Display.Height-HUDBottomOffset)
 }
 
 // drawTutorial renders the tutorial overlay.
@@ -814,24 +878,24 @@ func (g *Game) drawTutorial(screen *ebiten.Image) {
 	height := g.cfg.Display.Height
 
 	// Draw semi-transparent banner at top of screen
-	y := 60
+	y := TutorialBannerY
 
 	// Draw prompt text centered
 	text := prompt.Text
-	textWidth := len(text) * 6 // Approximate character width
+	textWidth := len(text) * CharacterWidthApprox
 	x := (width - textWidth) / 2
 	ebitenutil.DebugPrintAt(screen, text, x, y)
 
 	// Draw key hint below
 	if prompt.KeyHint != "" {
 		hintText := fmt.Sprintf("Press: %s", prompt.KeyHint)
-		hintWidth := len(hintText) * 6
-		ebitenutil.DebugPrintAt(screen, hintText, (width-hintWidth)/2, y+20)
+		hintWidth := len(hintText) * CharacterWidthApprox
+		ebitenutil.DebugPrintAt(screen, hintText, (width-hintWidth)/2, y+TutorialKeyHintOffset)
 	}
 
 	// Draw progress indicator
-	progressText := fmt.Sprintf("Tutorial %d/4", g.tutorial.Step+1)
-	ebitenutil.DebugPrintAt(screen, progressText, (width-len(progressText)*6)/2, height-60)
+	progressText := fmt.Sprintf("Tutorial %d/%d", g.tutorial.Step+1, TutorialStepCount)
+	ebitenutil.DebugPrintAt(screen, progressText, (width-len(progressText)*CharacterWidthApprox)/2, height-TutorialProgressOffset)
 }
 
 // drawMenu renders the current menu.
@@ -846,11 +910,11 @@ func (g *Game) drawMenu(screen *ebiten.Image) {
 	width := g.cfg.Display.Width
 	height := g.cfg.Display.Height
 
-	ebitenutil.DebugPrintAt(screen, title, width/2-len(title)*3, height/3)
+	ebitenutil.DebugPrintAt(screen, title, width/2-len(title)*(CharacterWidthApprox/2), height/3)
 
 	// Draw menu items
 	for i, item := range items {
-		y := height/2 + i*20
+		y := height/2 + i*MenuItemSpacing
 		prefix := "  "
 		if i == g.menuController.SelectionIndex() {
 			prefix = "> "
@@ -862,7 +926,7 @@ func (g *Game) drawMenu(screen *ebiten.Image) {
 	if g.stateManager.State() == ux.StateGameOver {
 		scoreText := fmt.Sprintf("Final Score: %d | Wave Reached: %d",
 			g.stateManager.FinalScore(), g.stateManager.FinalWave())
-		ebitenutil.DebugPrintAt(screen, scoreText, width/2-len(scoreText)*3, height/2+80)
+		ebitenutil.DebugPrintAt(screen, scoreText, width/2-len(scoreText)*(CharacterWidthApprox/2), height/2+GameOverScoreOffset)
 	}
 }
 

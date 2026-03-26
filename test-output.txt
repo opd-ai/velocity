@@ -1,0 +1,28 @@
+?   	github.com/opd-ai/velocity/cmd/velocity	[no test files]
+?   	github.com/opd-ai/velocity/mods	[no test files]
+ok  	github.com/opd-ai/velocity/pkg/audio	1.047s
+ok  	github.com/opd-ai/velocity/pkg/audit	1.020s
+ok  	github.com/opd-ai/velocity/pkg/balance	1.021s
+ok  	github.com/opd-ai/velocity/pkg/benchmark	1.031s
+ok  	github.com/opd-ai/velocity/pkg/class	1.022s
+ok  	github.com/opd-ai/velocity/pkg/combat	1.082s
+ok  	github.com/opd-ai/velocity/pkg/companion	1.018s
+ok  	github.com/opd-ai/velocity/pkg/config	1.024s
+ok  	github.com/opd-ai/velocity/pkg/engine	1.079s
+ok  	github.com/opd-ai/velocity/pkg/gameerrors	1.021s
+ok  	github.com/opd-ai/velocity/pkg/hostplay	1.021s
+ok  	github.com/opd-ai/velocity/pkg/integration	1.021s
+ok  	github.com/opd-ai/velocity/pkg/networking	1.021s
+ok  	github.com/opd-ai/velocity/pkg/procgen	1.056s
+ok  	github.com/opd-ai/velocity/pkg/procgen/genre	1.014s
+ok  	github.com/opd-ai/velocity/pkg/recovery	1.015s
+ok  	github.com/opd-ai/velocity/pkg/rendering	1.068s
+ok  	github.com/opd-ai/velocity/pkg/saveload	1.023s
+ok  	github.com/opd-ai/velocity/pkg/security	1.017s
+ok  	github.com/opd-ai/velocity/pkg/social	1.016s
+ok  	github.com/opd-ai/velocity/pkg/stability	1.174s
+ok  	github.com/opd-ai/velocity/pkg/ux	1.019s
+ok  	github.com/opd-ai/velocity/pkg/validation	1.019s
+ok  	github.com/opd-ai/velocity/pkg/version	1.018s
+ok  	github.com/opd-ai/velocity/pkg/visualtest	1.020s
+ok  	github.com/opd-ai/velocity/pkg/world	1.018s

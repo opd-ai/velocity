@@ -6,10 +6,53 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"math"
 	"math/rand"
 	"sync"
 
 	"github.com/opd-ai/velocity/pkg/engine"
+)
+
+// Particle physics constants.
+const (
+	// TwoPi is the full circle in radians.
+	TwoPi = 2 * math.Pi
+	// ParticleMinSpeed is the minimum emission speed for explosion particles.
+	ParticleMinSpeed = 20.0
+	// ParticleSpeedRange is the random variation in particle speed.
+	ParticleSpeedRange = 80.0
+	// ParticleMinLife is the minimum lifetime for explosion particles.
+	ParticleMinLife = 0.3
+	// ParticleLifeRange is the random variation in particle lifetime.
+	ParticleLifeRange = 0.5
+	// ParticleMinSize is the minimum size for explosion particles.
+	ParticleMinSize = 2.0
+	// ParticleSizeRange is the random variation in particle size.
+	ParticleSizeRange = 3.0
+	// ParticleDragCoeff is the velocity dampening per frame.
+	ParticleDragCoeff = 0.98
+)
+
+// Directional particle constants.
+const (
+	// DirectionalMinSpeed is the minimum speed for directional particles.
+	DirectionalMinSpeed = 30.0
+	// DirectionalSpeedRange is the speed variation for directional particles.
+	DirectionalSpeedRange = 60.0
+	// DirectionalMinLife is the minimum life for directional particles.
+	DirectionalMinLife = 0.2
+	// DirectionalLifeRange is the life variation for directional particles.
+	DirectionalLifeRange = 0.3
+	// DirectionalMinSize is the minimum size for directional particles.
+	DirectionalMinSize = 1.5
+	// DirectionalSizeRange is the size variation for directional particles.
+	DirectionalSizeRange = 2.0
+)
+
+// Particle pool constants.
+const (
+	// DefaultParticleCapacity is the initial particle slice capacity.
+	DefaultParticleCapacity = 256
 )
 
 // Renderer handles all drawing operations.
@@ -155,7 +198,7 @@ type ParticleSystem struct {
 // NewParticleSystem creates an empty particle system.
 func NewParticleSystem() *ParticleSystem {
 	return &ParticleSystem{
-		particles: make([]Particle, 0, 256),
+		particles: make([]Particle, 0, DefaultParticleCapacity),
 		genreID:   "scifi",
 		rng:       rand.New(rand.NewSource(0)),
 	}
@@ -183,9 +226,9 @@ func (ps *ParticleSystem) Emit(x, y float64, count int) {
 	// Pre-allocate new particles slice
 	newParticles := make([]Particle, count)
 	for i := 0; i < count; i++ {
-		angle := ps.rng.Float64() * 6.28318 // 2*PI
-		speed := 20.0 + ps.rng.Float64()*80.0
-		life := 0.3 + ps.rng.Float64()*0.5
+		angle := ps.rng.Float64() * TwoPi
+		speed := ParticleMinSpeed + ps.rng.Float64()*ParticleSpeedRange
+		life := ParticleMinLife + ps.rng.Float64()*ParticleLifeRange
 
 		newParticles[i] = Particle{
 			X:       x,
@@ -195,7 +238,7 @@ func (ps *ParticleSystem) Emit(x, y float64, count int) {
 			Life:    life,
 			MaxLife: life,
 			Color:   ps.getParticleColor(),
-			Size:    2.0 + ps.rng.Float64()*3.0,
+			Size:    ParticleMinSize + ps.rng.Float64()*ParticleSizeRange,
 		}
 	}
 	ps.particles = append(ps.particles, newParticles...)
@@ -210,8 +253,8 @@ func (ps *ParticleSystem) EmitDirectional(x, y, angle, spread float64, count int
 	newParticles := make([]Particle, count)
 	for i := 0; i < count; i++ {
 		particleAngle := angle + (ps.rng.Float64()-0.5)*spread
-		speed := 30.0 + ps.rng.Float64()*60.0
-		life := 0.2 + ps.rng.Float64()*0.3
+		speed := DirectionalMinSpeed + ps.rng.Float64()*DirectionalSpeedRange
+		life := DirectionalMinLife + ps.rng.Float64()*DirectionalLifeRange
 
 		newParticles[i] = Particle{
 			X:       x,
@@ -221,7 +264,7 @@ func (ps *ParticleSystem) EmitDirectional(x, y, angle, spread float64, count int
 			Life:    life,
 			MaxLife: life,
 			Color:   ps.getParticleColor(),
-			Size:    1.5 + ps.rng.Float64()*2.0,
+			Size:    DirectionalMinSize + ps.rng.Float64()*DirectionalSizeRange,
 		}
 	}
 	ps.particles = append(ps.particles, newParticles...)
@@ -240,8 +283,8 @@ func (ps *ParticleSystem) Update(dt float64) {
 		p.Life -= dt
 
 		// Apply drag
-		p.VX *= 0.98
-		p.VY *= 0.98
+		p.VX *= ParticleDragCoeff
+		p.VY *= ParticleDragCoeff
 
 		if p.Life > 0 {
 			alive = append(alive, *p)
