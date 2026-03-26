@@ -180,12 +180,14 @@ func (ps *ParticleSystem) Emit(x, y float64, count int) {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
+	// Pre-allocate new particles slice
+	newParticles := make([]Particle, count)
 	for i := 0; i < count; i++ {
 		angle := ps.rng.Float64() * 6.28318 // 2*PI
 		speed := 20.0 + ps.rng.Float64()*80.0
 		life := 0.3 + ps.rng.Float64()*0.5
 
-		p := Particle{
+		newParticles[i] = Particle{
 			X:       x,
 			Y:       y,
 			VX:      speed * cosApprox(angle),
@@ -195,8 +197,8 @@ func (ps *ParticleSystem) Emit(x, y float64, count int) {
 			Color:   ps.getParticleColor(),
 			Size:    2.0 + ps.rng.Float64()*3.0,
 		}
-		ps.particles = append(ps.particles, p)
 	}
+	ps.particles = append(ps.particles, newParticles...)
 }
 
 // EmitDirectional spawns particles moving in a specific direction.
@@ -204,12 +206,14 @@ func (ps *ParticleSystem) EmitDirectional(x, y, angle, spread float64, count int
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
+	// Pre-allocate new particles slice
+	newParticles := make([]Particle, count)
 	for i := 0; i < count; i++ {
 		particleAngle := angle + (ps.rng.Float64()-0.5)*spread
 		speed := 30.0 + ps.rng.Float64()*60.0
 		life := 0.2 + ps.rng.Float64()*0.3
 
-		p := Particle{
+		newParticles[i] = Particle{
 			X:       x,
 			Y:       y,
 			VX:      speed * cosApprox(particleAngle),
@@ -219,8 +223,8 @@ func (ps *ParticleSystem) EmitDirectional(x, y, angle, spread float64, count int
 			Color:   ps.getParticleColor(),
 			Size:    1.5 + ps.rng.Float64()*2.0,
 		}
-		ps.particles = append(ps.particles, p)
 	}
+	ps.particles = append(ps.particles, newParticles...)
 }
 
 // Update advances all particles by dt seconds and removes expired ones.

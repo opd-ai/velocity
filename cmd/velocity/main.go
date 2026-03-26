@@ -73,6 +73,9 @@ type Game struct {
 	weaponSystem     *combat.WeaponSystem
 	enemyAISystem    *procgen.EnemyAISystem
 
+	// Particle effects
+	particleSystem *rendering.ParticleSystem
+
 	// Procedural generation
 	generator   *procgen.Generator
 	waveSpawner *procgen.WaveSpawner
@@ -104,6 +107,7 @@ func NewGame(cfg *config.Config) *Game {
 		audio:            audio.NewManager(),
 		hud:              ux.NewHUD(),
 		menu:             ux.NewMenu(),
+		particleSystem:   rendering.NewParticleSystem(),
 		ebitenImageCache: make(map[string]*ebiten.Image),
 	}
 
@@ -113,6 +117,8 @@ func NewGame(cfg *config.Config) *Game {
 	g.audio.SetGenre(genre)
 	g.hud.SetGenre(genre)
 	g.menu.SetGenre(genre)
+	g.particleSystem.SetGenre(genre)
+	g.particleSystem.SetSeed(cfg.Gameplay.Seed)
 	g.audio.SetVolumes(cfg.Audio.MasterVolume, cfg.Audio.MusicVolume, cfg.Audio.SFXVolume)
 
 	// Check for saved game
@@ -253,6 +259,10 @@ func (g *Game) startNewGame() {
 	// Spawn player at center
 	g.spawnPlayer()
 
+	// Start background music
+	g.audio.PlayMusic()
+	g.audio.SetIntensity(0.3) // Low intensity for start
+
 	// Start first wave after a brief delay
 	g.waveManager.StartNextWave()
 }
@@ -319,6 +329,12 @@ func (g *Game) clearAllEntities() {
 // onEnemyKilled handles scoring when an enemy dies.
 func (g *Game) onEnemyKilled(entity engine.Entity) {
 	g.waveManager.OnEnemyKilled()
+
+	// Get entity position for particle effect
+	if pos, ok := g.world.GetComponent(entity, "position"); ok {
+		p := pos.(*engine.Position)
+		g.particleSystem.Emit(p.X, p.Y, 20)
+	}
 
 	// Mark tutorial kill action
 	if g.tutorial != nil && g.tutorial.Active {
@@ -497,10 +513,12 @@ func (g *Game) handleMenuInput() {
 // Key state tracking for edge detection
 var prevKeys = make(map[ebiten.Key]bool)
 
+// wasKeyPressed returns true if the key was pressed in the previous frame.
 func (g *Game) wasKeyPressed(key ebiten.Key) bool {
 	return prevKeys[key]
 }
 
+// updatePrevKeys stores the current key states for edge detection.
 func (g *Game) updatePrevKeys() {
 	prevKeys[ebiten.KeyUp] = ebiten.IsKeyPressed(ebiten.KeyUp)
 	prevKeys[ebiten.KeyDown] = ebiten.IsKeyPressed(ebiten.KeyDown)
@@ -532,9 +550,19 @@ func (g *Game) updateGameplay(dt float64) {
 	g.projectileSystem.Update(dt)
 	g.damageSystem.Update(dt)
 
+	// Update particle system
+	g.particleSystem.Update(dt)
+
 	// AI and wave management
 	g.enemyAISystem.Update(dt)
 	g.waveManager.Update(dt)
+
+	// Update music intensity based on wave state
+	if g.waveManager.WaveInProgress() {
+		g.audio.SetIntensity(0.8) // High intensity during waves
+	} else {
+		g.audio.SetIntensity(0.3) // Low intensity between waves
+	}
 
 	// Auto-advance to next wave if current wave is complete
 	if !g.waveManager.WaveInProgress() && g.stateManager.IsPlaying() {
@@ -643,6 +671,40 @@ func (g *Game) drawGameplay(screen *ebiten.Image) {
 			g.drawEntity(screen, e, cullContext)
 		}
 	})
+
+	// Render particles
+	g.drawParticles(screen)
+}
+
+// drawParticles renders all active particles.
+func (g *Game) drawParticles(screen *ebiten.Image) {
+	particles := g.particleSystem.GetParticles()
+	for _, p := range particles {
+		// Calculate alpha based on remaining life
+		alpha := float32(p.Life / p.MaxLife)
+		if alpha < 0 {
+			alpha = 0
+		}
+
+		// Draw particle as a filled square
+		col := p.Color
+		col.A = uint8(float32(col.A) * alpha)
+
+		// Create a small colored image for the particle
+		size := int(p.Size)
+		if size < 1 {
+			size = 1
+		}
+		for dy := 0; dy < size; dy++ {
+			for dx := 0; dx < size; dx++ {
+				x := int(p.X) + dx - size/2
+				y := int(p.Y) + dy - size/2
+				if x >= 0 && x < g.cfg.Display.Width && y >= 0 && y < g.cfg.Display.Height {
+					screen.Set(x, y, col)
+				}
+			}
+		}
+	}
 }
 
 // drawEntity renders a single entity with its sprite and rotation.
@@ -823,6 +885,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return g.cfg.Display.Width, g.cfg.Display.Height
 }
 
+// main initializes the game configuration and starts the Ebitengine game loop.
 func main() {
 	cfg, err := config.Load()
 	if err != nil {

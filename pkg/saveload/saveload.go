@@ -3,6 +3,7 @@ package saveload
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 )
 
@@ -20,20 +21,23 @@ type RunState struct {
 func Save(path string, state *RunState) error {
 	data, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("saveload: marshal state: %w", err)
 	}
-	return os.WriteFile(path, data, 0o644)
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		return fmt.Errorf("saveload: write file %s: %w", path, err)
+	}
+	return nil
 }
 
 // Load reads a run state from a file.
 func Load(path string) (*RunState, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("saveload: read file %s: %w", path, err)
 	}
 	var state RunState
 	if err := json.Unmarshal(data, &state); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("saveload: unmarshal state: %w", err)
 	}
 	return &state, nil
 }

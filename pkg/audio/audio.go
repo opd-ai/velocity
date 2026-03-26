@@ -5,8 +5,6 @@ import (
 	"encoding/binary"
 	"math"
 	"sync"
-
-	"github.com/hajimehoshi/ebiten/v2/audio"
 )
 
 // Audio system constants
@@ -48,8 +46,16 @@ type Manager struct {
 	playerX float64
 	playerY float64
 
-	// Ebitengine audio context for actual playback
-	audioContext *audio.Context
+	// audioBackend is the platform-specific audio backend (Ebiten or stub)
+	audioBackend AudioBackend
+}
+
+// AudioBackend defines the interface for platform-specific audio playback.
+type AudioBackend interface {
+	// PlayBytes plays raw PCM audio data.
+	PlayBytes(data []byte)
+	// Initialize initializes the audio backend.
+	Initialize()
 }
 
 // SFXRequest represents a queued sound effect.
@@ -67,11 +73,8 @@ func NewManager() *Manager {
 		musicVolume:  0.6,
 		sfxVolume:    0.8,
 		sfxQueue:     make([]SFXRequest, 0, 16),
+		audioBackend: newAudioBackend(),
 	}
-
-	// Initialize Ebitengine audio context (lazy initialization on first use)
-	// The context is created when Update() is first called to avoid
-	// initialization issues before the game loop starts.
 	return m
 }
 
@@ -131,9 +134,9 @@ func (m *Manager) StopMusic() {
 
 // Update advances the audio state each frame.
 func (m *Manager) Update() {
-	// Lazy-initialize audio context on first update
-	if m.audioContext == nil {
-		m.audioContext = audio.NewContext(SampleRate)
+	// Lazy-initialize audio backend on first update
+	if m.audioBackend != nil {
+		m.audioBackend.Initialize()
 	}
 
 	// Process any queued SFX
@@ -149,9 +152,9 @@ func (m *Manager) Update() {
 	}
 }
 
-// playSFXNow plays a sound effect immediately using the audio context.
+// playSFXNow plays a sound effect immediately using the audio backend.
 func (m *Manager) playSFXNow(req SFXRequest) {
-	if m.audioContext == nil {
+	if m.audioBackend == nil {
 		return
 	}
 
@@ -170,9 +173,8 @@ func (m *Manager) playSFXNow(req SFXRequest) {
 		data = ApplySpatialAudio(data, m.sfxVolume*m.masterVolume, 0)
 	}
 
-	// Create an audio player from the PCM data
-	player := m.audioContext.NewPlayerFromBytes(data)
-	player.Play()
+	// Play the audio data
+	m.audioBackend.PlayBytes(data)
 }
 
 // GenerateTone creates PCM audio data for a simple tone.

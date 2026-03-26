@@ -12,6 +12,9 @@ func NewEbitenInputReader() *StubInputReader {
 	return &StubInputReader{}
 }
 
+// SetScreenSize is a no-op for the stub reader.
+func (r *StubInputReader) SetScreenSize(width, height int) {}
+
 // ReadState returns an empty input state (no keys pressed).
 func (r *StubInputReader) ReadState(bindings KeyBindings) InputState {
 	return InputState{}

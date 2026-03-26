@@ -80,6 +80,7 @@ func Load() (*Config, error) {
 	return &cfg, nil
 }
 
+// setDefaults configures default values for all configuration options.
 func setDefaults() {
 	viper.SetDefault("display.width", 800)
 	viper.SetDefault("display.height", 600)

@@ -89,4 +89,3 @@ func TestConfigValidArenaModes(t *testing.T) {
 		}
 	}
 }
-

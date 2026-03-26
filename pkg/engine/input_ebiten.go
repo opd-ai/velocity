@@ -10,16 +10,27 @@ import "github.com/hajimehoshi/ebiten/v2"
 type EbitenInputReader struct {
 	// deadzone threshold for analog sticks
 	deadzone float64
+	// Screen dimensions for touch region calculation
+	screenWidth  int
+	screenHeight int
 }
 
 // NewEbitenInputReader creates a new Ebiten-based input reader.
 func NewEbitenInputReader() *EbitenInputReader {
 	return &EbitenInputReader{
-		deadzone: 0.25,
+		deadzone:     0.25,
+		screenWidth:  800, // Default, can be updated
+		screenHeight: 600,
 	}
 }
 
-// ReadState reads the current input state from keyboard and gamepads.
+// SetScreenSize updates the screen dimensions for touch region calculation.
+func (r *EbitenInputReader) SetScreenSize(width, height int) {
+	r.screenWidth = width
+	r.screenHeight = height
+}
+
+// ReadState reads the current input state from keyboard, gamepads, and touch.
 func (r *EbitenInputReader) ReadState(bindings KeyBindings) InputState {
 	state := InputState{
 		Thrust:      ebiten.IsKeyPressed(parseKey(bindings.Thrust)),
@@ -33,79 +44,114 @@ func (r *EbitenInputReader) ReadState(bindings KeyBindings) InputState {
 	// Merge gamepad input (any connected gamepad)
 	r.mergeGamepadInput(&state)
 
+	// Merge touch input
+	r.mergeTouchInput(&state)
+
 	return state
+}
+
+// mergeTouchInput reads from touch screen and maps regions to virtual buttons.
+// Touch regions:
+//   - Left 1/3 of screen: rotate left
+//   - Right 1/3 of screen: rotate right
+//   - Bottom center: thrust
+//   - Top center: fire
+func (r *EbitenInputReader) mergeTouchInput(state *InputState) {
+	touchIDs := ebiten.AppendTouchIDs(nil)
+	for _, id := range touchIDs {
+		x, y := ebiten.TouchPosition(id)
+
+		// Calculate region boundaries
+		leftThird := r.screenWidth / 3
+		rightThird := r.screenWidth * 2 / 3
+		topHalf := r.screenHeight / 2
+
+		// Check horizontal position for rotation
+		if x < leftThird {
+			state.RotateLeft = true
+		} else if x > rightThird {
+			state.RotateRight = true
+		}
+
+		// Check vertical position for thrust/fire
+		// Center column only (middle third)
+		if x >= leftThird && x <= rightThird {
+			if y > topHalf {
+				state.Thrust = true
+			} else {
+				state.Fire = true
+			}
+		}
+	}
 }
 
 // mergeGamepadInput reads from all connected gamepads and merges into state.
 func (r *EbitenInputReader) mergeGamepadInput(state *InputState) {
 	ids := ebiten.AppendGamepadIDs(nil)
 	for _, id := range ids {
-		// D-pad or left stick for rotation
-		leftX := ebiten.GamepadAxisValue(id, 0) // Left stick X
-		if leftX < -r.deadzone || ebiten.IsGamepadButtonPressed(id, ebiten.GamepadButton13) { // Left D-pad
-			state.RotateLeft = true
-		}
-		if leftX > r.deadzone || ebiten.IsGamepadButtonPressed(id, ebiten.GamepadButton14) { // Right D-pad
-			state.RotateRight = true
-		}
-
-		// Left stick Y or D-pad up for thrust
-		leftY := ebiten.GamepadAxisValue(id, 1) // Left stick Y
-		if leftY < -r.deadzone || ebiten.IsGamepadButtonPressed(id, ebiten.GamepadButton11) { // Up D-pad
-			state.Thrust = true
-		}
-
-		// Face buttons
-		// A/Cross (button 0) - Fire
-		if ebiten.IsGamepadButtonPressed(id, ebiten.GamepadButton0) {
-			state.Fire = true
-		}
-		// B/Circle (button 1) - Secondary
-		if ebiten.IsGamepadButtonPressed(id, ebiten.GamepadButton1) {
-			state.Secondary = true
-		}
-		// Start (button 9) or + (button 7) - Pause
-		if ebiten.IsGamepadButtonPressed(id, ebiten.GamepadButton7) ||
-			ebiten.IsGamepadButtonPressed(id, ebiten.GamepadButton9) {
-			state.Pause = true
-		}
-
-		// Right trigger (axis 5) for thrust as alternative
-		rightTrigger := ebiten.GamepadAxisValue(id, 5)
-		if rightTrigger > r.deadzone {
-			state.Thrust = true
-		}
+		r.readGamepadRotation(id, state)
+		r.readGamepadThrust(id, state)
+		r.readGamepadButtons(id, state)
 	}
+}
+
+// readGamepadRotation reads rotation input from D-pad and left stick.
+func (r *EbitenInputReader) readGamepadRotation(id ebiten.GamepadID, state *InputState) {
+	leftX := ebiten.GamepadAxisValue(id, 0) // Left stick X
+	if leftX < -r.deadzone || ebiten.IsGamepadButtonPressed(id, ebiten.GamepadButton13) {
+		state.RotateLeft = true
+	}
+	if leftX > r.deadzone || ebiten.IsGamepadButtonPressed(id, ebiten.GamepadButton14) {
+		state.RotateRight = true
+	}
+}
+
+// readGamepadThrust reads thrust input from D-pad, left stick, and triggers.
+func (r *EbitenInputReader) readGamepadThrust(id ebiten.GamepadID, state *InputState) {
+	leftY := ebiten.GamepadAxisValue(id, 1) // Left stick Y
+	if leftY < -r.deadzone || ebiten.IsGamepadButtonPressed(id, ebiten.GamepadButton11) {
+		state.Thrust = true
+	}
+	rightTrigger := ebiten.GamepadAxisValue(id, 5)
+	if rightTrigger > r.deadzone {
+		state.Thrust = true
+	}
+}
+
+// readGamepadButtons reads face button input for fire, secondary, and pause.
+func (r *EbitenInputReader) readGamepadButtons(id ebiten.GamepadID, state *InputState) {
+	if ebiten.IsGamepadButtonPressed(id, ebiten.GamepadButton0) {
+		state.Fire = true
+	}
+	if ebiten.IsGamepadButtonPressed(id, ebiten.GamepadButton1) {
+		state.Secondary = true
+	}
+	if ebiten.IsGamepadButtonPressed(id, ebiten.GamepadButton7) ||
+		ebiten.IsGamepadButtonPressed(id, ebiten.GamepadButton9) {
+		state.Pause = true
+	}
+}
+
+// keyNameMap maps string key names to ebiten.Key values.
+var keyNameMap = map[string]ebiten.Key{
+	"W":      ebiten.KeyW,
+	"A":      ebiten.KeyA,
+	"S":      ebiten.KeyS,
+	"D":      ebiten.KeyD,
+	"Space":  ebiten.KeySpace,
+	"Shift":  ebiten.KeyShiftLeft,
+	"Escape": ebiten.KeyEscape,
+	"Enter":  ebiten.KeyEnter,
+	"Up":     ebiten.KeyUp,
+	"Down":   ebiten.KeyDown,
+	"Left":   ebiten.KeyLeft,
+	"Right":  ebiten.KeyRight,
 }
 
 // parseKey converts a string key name to an ebiten.Key.
 func parseKey(name string) ebiten.Key {
-	switch name {
-	case "W":
-		return ebiten.KeyW
-	case "A":
-		return ebiten.KeyA
-	case "S":
-		return ebiten.KeyS
-	case "D":
-		return ebiten.KeyD
-	case "Space":
-		return ebiten.KeySpace
-	case "Shift":
-		return ebiten.KeyShiftLeft
-	case "Escape":
-		return ebiten.KeyEscape
-	case "Enter":
-		return ebiten.KeyEnter
-	case "Up":
-		return ebiten.KeyUp
-	case "Down":
-		return ebiten.KeyDown
-	case "Left":
-		return ebiten.KeyLeft
-	case "Right":
-		return ebiten.KeyRight
-	default:
-		return ebiten.KeyW
+	if key, ok := keyNameMap[name]; ok {
+		return key
 	}
+	return ebiten.KeyW
 }
