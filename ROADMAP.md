@@ -1,264 +1,302 @@
-# VELOCITY
+# Goal-Achievement Assessment
 
-**Gameplay Style:** Arcade Shooter — Galaga × Asteroids with procedural content  
-**Vision:** Ship a fully procedural, genre-skinned top-down arcade shooter — pure thrust-and-fire action across five thematic universes, from a single deterministic binary with no external assets.
-
----
-
-## Genre Support
-
-Every system that produces visual, audio, or narrative output must implement `SetGenre(genreID string)` to switch thematic presentation at runtime. The five supported setting genres and their velocity-specific manifestations are:
-
-| Genre ID    | Thematic Skin                 | Ships & Enemies                        | Weapons                        | Background & Environment                       |
-|-------------|-------------------------------|----------------------------------------|--------------------------------|------------------------------------------------|
-| `fantasy`   | Magical scrollspace           | Enchanted vessels, arcane constructs   | Spell projectiles, rune bursts | Constellation fields, celestial nebulae        |
-| `scifi`     | Asteroid field                | Fighters, drones, mechanical cruisers  | Lasers, plasma cannons         | Deep-space nebulae, asteroid belts             |
-| `horror`    | Void / biomass                | Organic ships, tentacle enemies        | Acid sprays, spore blasts      | Flesh-wall backgrounds, darkness, void fog     |
-| `cyberpunk` | Data highway                  | Geometric neon ships, data constructs  | Data-stream bullets, EMP bursts| Grid-line backgrounds, neon city-scapes        |
-| `postapoc`  | Orbital debris field          | Salvaged craft, makeshift vessels      | Makeshift cannons, debris shot | Earth-ruin orbit backgrounds, debris clouds    |
+Generated: 2026-03-28  
+Tool: go-stats-generator v1.0.0
 
 ---
 
-## Phased Milestones
+## Project Context
 
-### v1.0 — Core Engine + Playable Single-Player
+### What It Claims to Do
 
-> Foundation: deterministic engine, one playable genre (`scifi`), ship physics, basic combat loop.
+**Velocity** is a procedural arcade shooter in the Galaga × Asteroids style, built with Go and Ebitengine. From the README and existing documentation:
 
-**Tier 1 — Core Engine (direct port from venture):**
+1. **Fully procedural content** — "single deterministic binary with no external assets"
+2. **Five thematic universes** — SciFi, Fantasy, Horror, Cyberpunk, Post-Apocalyptic
+3. **Deterministic seed-based generation** — enables per-seed leaderboards and reproducible runs
+4. **Core ECS architecture** — Entity-Component-System framework for all game logic
+5. **Newtonian 2D ship physics** — thrust, rotation, inertia, drag
+6. **Procedural sprite generation** — ships, enemies, projectiles from algorithms
+7. **Adaptive music and SFX** — intensity-driven music layers, spatial audio
+8. **Keyboard/gamepad/touch input** — rebindable controls
+9. **Wave-based combat** — procedural enemy spawning with difficulty progression
+10. **Save/load system** — persist and resume interrupted sessions
+11. **Tutorial system** — first-run guided experience
+12. **CI/CD pipeline** — multi-platform GitHub Actions
+13. **82%+ test coverage** — unit and integration tests
 
-| System | Velocity Implementation | venture Source |
-|--------|------------------------|----------------|
-| ECS framework | Entity-component-system core; all game objects are entities | `pkg/engine` |
-| `SetGenre()` interface | Required on every system producing output; switches skin at runtime | `pkg/engine` / `pkg/procgen/genre` |
-| Seed-based deterministic RNG | All procedural content seeded — reproducible runs, per-seed leaderboards | `pkg/engine` |
-| Input system | Keyboard/gamepad/touch; rebindable controls | `pkg/engine` |
-| Camera system | Viewport tracking, screen-shake on explosions | `pkg/engine` |
-| Rendering — sprites | Procedurally drawn ship/enemy/projectile sprites (no external assets) | `pkg/rendering` |
-| Rendering — animation | Frame-based sprite animation for thrusters, explosions, pickups | `pkg/rendering` |
-| Rendering — particles | Explosion debris, thruster trails, impact sparks | `pkg/rendering` |
-| Audio — adaptive music | Intensity-driven music layers; genre-specific instrumentation | `pkg/audio` |
-| Audio — SFX | Weapon fire, explosions, powerup collect, UI feedback | `pkg/audio` |
-| Audio — positional | Off-screen enemy audio cues using distance/angle | `pkg/audio` |
-| UI / HUD | Ship health bar, shield meter, score, wave counter, combo display | `pkg/ux` |
-| Menus | Main menu, pause menu, game-over screen, high-score entry | `pkg/ux` |
-| Tutorial | First-run guided wave teaching thrust, fire, and dodge | `pkg/ux` |
-| Save / load | Run state persistence; resume interrupted sessions | `pkg/saveload` |
-| Config / settings | Resolution, audio levels, control bindings, genre preference | `pkg/config` |
-| Performance — viewport culling | Skip update/draw for off-screen entities | `pkg/rendering` |
-| Performance — batching | Batch draw calls per entity type per frame | `pkg/rendering` |
-| Performance — sprite cache | Cache generated sprite bitmaps keyed by genre + variant | `pkg/rendering` |
-| Error handling | Structured error types, panic recovery, graceful degradation | `pkg/errors` / `pkg/recovery` |
-| Validation | Input validation for config, save data, network messages | `pkg/validation` |
-| Version system | Embedded version string, save-file version migration | `pkg/version` |
-| Benchmark harness | Per-system frame-time profiling | `pkg/benchmark` |
-| CI/CD | Multi-platform GitHub Actions: Linux, macOS, Windows, WASM | — |
-| Cross-platform builds | `GOOS` matrix; single binary, no external assets | — |
-| Docs | README, CONTROLS, CHANGELOG, FAQ | — |
-| 82%+ test coverage | Unit + integration tests for all packages | — |
+### Target Audience
 
-**Velocity-Specific (new — not in venture):**
+Casual and retro-arcade enthusiasts seeking quick sessions with deep replayability. The deterministic seed system enables speedruns and score competitions.
 
-| System | Description |
-|--------|-------------|
-| Ship physics | Thrust, rotation, inertia, drag, mass — Newtonian 2-D flight model |
-| Screen-wrap / bounded arena | Configurable: objects wrap at edges (Asteroids mode) or bounce (bounded mode) |
-| Procedural wave generator (stub) | Seed-driven wave sequencer; single enemy type, increasing count |
+### Architecture
 
----
+| Layer | Packages | Responsibility |
+|-------|----------|----------------|
+| Entry | `cmd/velocity` | Ebitengine game loop bootstrap |
+| Core | `pkg/game`, `pkg/engine` | Game struct, ECS, physics, input |
+| Combat | `pkg/combat` | Weapons, damage, projectiles, collision |
+| Procgen | `pkg/procgen`, `pkg/procgen/genre` | Wave generation, enemy spawning, genre presets |
+| Rendering | `pkg/rendering` | Sprite generation, particles, batching, culling |
+| Audio | `pkg/audio` | PCM synthesis, spatial audio, adaptive music |
+| UX | `pkg/ux` | HUD, menus, tutorial, game state |
+| Infrastructure | `pkg/config`, `pkg/saveload`, `pkg/validation`, `pkg/gameerrors`, `pkg/recovery` | Configuration, persistence, validation, error handling |
+| Stubs (v5.0+) | `pkg/networking`, `pkg/security`, `pkg/social`, `pkg/hostplay`, `pkg/companion` | Future multiplayer features |
+| Quality | `pkg/audit`, `pkg/benchmark`, `pkg/stability`, `pkg/visualtest` | Telemetry, profiling, crash detection |
 
-### v2.0 — Core Systems: Weapons, Wave AI, Score, All 5 Genres
+### Existing CI/Quality Gates
 
-> All five genres integrated; full combat loop; wave difficulty ramp; score/combo system live.
-
-**Tier 1 — Engine Additions:**
-
-| System | Velocity Implementation | venture Source |
-|--------|------------------------|----------------|
-| Genre post-processing presets | Per-genre screen filter: bloom (`scifi`), desaturation (`horror`), neon glow (`cyberpunk`), parchment (`fantasy`), dust grain (`postapoc`) | `pkg/procgen/genre` |
-| Procedural level / wave generation | Full procedural wave + formation generator; enemy types, spawn patterns, escalating difficulty curve | `pkg/procgen` |
-
-**Tier 2 — Core Gameplay (adapted from venture):**
-
-| Venture System | Velocity Adaptation | venture Source |
-|----------------|---------------------|----------------|
-| Combat system | Ship weapons: primary fire, secondary fire, missiles, bombs; hit detection; damage calculation | `pkg/combat` |
-| AI — behavior trees | Formation AI, dive-bomb patterns, strafing runs, flanking maneuvers | `pkg/engine` (AI subsystem) |
-| Status effects | Ship debuffs: slowed (engine damage), EMP'd (controls scrambled), hull breach (continuous damage) | `pkg/combat` |
-| Magic / spells | Special weapons / screen-clearing bombs; genre-skinned (spell nova / EMP burst / spore cloud / data wipe / debris burst) | `pkg/combat` |
-| Quests / objectives | Wave objectives: "survive 60 s", "destroy all elites before swarm", bonus mission waves | `pkg/world` (quests subsystem) |
-
-**Velocity-Specific (new):**
-
-| System | Description |
-|--------|-------------|
-| Bullet-pattern engine | Configurable projectile patterns: spread, spiral, homing, burst, ring; `SetGenre()` skins bullet visuals |
-| Wave / formation system | Procedural enemy wave sequencer with formation templates (V, pincer, swarm, column); per-genre enemy skin |
-| Score / combo / multiplier system | Chained kills extend combo timer; multiplier tiers (1×→8×); high-score tracking per seed |
-| Boss pattern stubs | First boss encounter skeleton with multi-phase state machine; full polish in v4.0 |
+- **GitHub Actions CI** (`.github/workflows/ci.yml`):
+  - Multi-platform build: Linux, macOS, Windows
+  - Cross-compile: `js/wasm`, `darwin/arm64`
+  - Test with race detection: `go test -race -tags noebiten ./pkg/...`
+  - Formatting check: `gofmt -s -l .`
+  - Static analysis: `go vet ./...`
+  - Coverage report: `go tool cover -func`
 
 ---
 
-### v3.0 — Visual Polish: Lighting, Particles, Space Weather, Per-Genre Post-Processing
+## Goal-Achievement Summary
 
-> The game looks and sounds as distinct as it plays across all five genres.
+| # | Stated Goal | Status | Evidence | Gap Description |
+|---|-------------|--------|----------|-----------------|
+| 1 | ECS framework | ✅ Achieved | `pkg/engine/engine.go`: World, Entity, Component, System interfaces; 54 functions, 19 structs | Fully implemented and integrated |
+| 2 | Deterministic RNG | ✅ Achieved | `engine.DeterministicRNG()` used consistently throughout procgen and rendering | Seed propagation verified |
+| 3 | Newtonian physics | ✅ Achieved | `pkg/engine/physics.go`: PhysicsSystem with thrust, drag, max speed; integrated in game loop | Constants tunable in `pkg/game/game.go` |
+| 4 | Keyboard input | ✅ Achieved | `pkg/engine/input_ebiten.go`: full keyboard mapping with rebindable controls | Working |
+| 5 | Gamepad input | ✅ Achieved | `pkg/engine/input_ebiten.go:96-140`: D-pad, analog sticks, triggers, face buttons | Working |
+| 6 | Touch input | ✅ Achieved | `pkg/engine/input_ebiten.go:53-93`: screen region mapping for mobile | Working |
+| 7 | Procedural sprites | ✅ Achieved | `pkg/rendering/sprites.go`: symmetric pixel generation with genre palettes | Ship, enemy, projectile sprites all generated |
+| 8 | Particle system | ✅ Achieved | `pkg/rendering/rendering.go:148-296`: Emit(), Update(), genre colors; integrated via `g.particleSystem.Emit()` on enemy death | Working |
+| 9 | Procedural SFX | ✅ Achieved | `pkg/audio/audio.go:180-320`: GenerateTone(), GenerateLaserSFX(), GenerateExplosionSFX() | PCM synthesis working |
+| 10 | Spatial audio | ✅ Achieved | `pkg/audio/audio.go`: CalculateSpatialVolume(), ApplySpatialAudio() with distance/pan | Working |
+| 11 | Wave spawner | ✅ Achieved | `pkg/procgen/spawner.go`: SpawnWave() with difficulty formula (health = 10 + wave×5, speed = 50 + wave×5) | Working |
+| 12 | Enemy AI | ✅ Achieved | `pkg/procgen/spawner.go:186-242`: EnemyAISystem with approach state, player tracking | Basic but functional |
+| 13 | Combat system | ✅ Achieved | `pkg/combat/`: weapons, projectiles, damage, collision detection, death callbacks | Fully integrated |
+| 14 | HUD | ✅ Achieved | `pkg/ux/ux.go`: health, score, wave, combo display | Working |
+| 15 | Menu system | ✅ Achieved | `pkg/ux/game_state.go`: main menu, pause, game over with navigation | Working |
+| 16 | Tutorial | ✅ Achieved | `pkg/ux/ux.go`: NewTutorial(), Advance(), MarkAction(); integrated in game loop | First-run detection via save file |
+| 17 | Save/load | ✅ Achieved | `pkg/saveload/saveload.go`: JSON serialization; `pkg/game/game.go` integrates save on pause, load on continue | Working |
+| 18 | Config/settings | ✅ Achieved | `pkg/config/config.go`: Viper-based YAML loading with defaults | 87.1% coverage |
+| 19 | Error handling | ✅ Achieved | `pkg/gameerrors/gameerrors.go`, `pkg/recovery/recovery.go`: structured errors, panic recovery | Working |
+| 20 | Validation | ✅ Achieved | `pkg/validation/validation.go`: ValidateGenre(), ValidateArenaMode(), ValidatePort() | 100% coverage |
+| 21 | CI/CD pipeline | ✅ Achieved | `.github/workflows/ci.yml`: 4 jobs (build, coverage, lint, cross-compile) | Multi-platform verified |
+| 22 | Arena modes | ✅ Achieved | `pkg/engine/arena.go`: wrap and bounded modes | Working |
+| 23 | Five genres | ✅ Achieved | `pkg/procgen/genre/genre.go`: GetPreset() for all five; SetGenre() on renderer, audio, particles | All visually distinct |
+| 24 | Adaptive music | ⚠️ Partial | `pkg/audio/audio.go:126-128`: PlayMusic() sets flag, SetIntensity() integrated in game loop at lines 624-628 | **No actual music generation** — intensity-driven layers not implemented |
+| 25 | 82%+ test coverage | ⚠️ Partial | Actual: **90.1%** overall, but `pkg/game` has **0%** (no test files) | Game package untested |
+| 26 | Version system | ✅ Achieved | `pkg/version/version.go`: GetVersion(), GetSaveVersion() | Working |
+| 27 | Benchmark harness | ✅ Achieved | `pkg/benchmark/benchmark.go`: micro-benchmark infrastructure | 100% coverage |
+| 28 | Watchdog timer | ✅ Achieved | `pkg/stability/stability.go`: Ping(), stuck frame detection | 100% coverage |
+| 29 | Visual test harness | ✅ Achieved | `pkg/visualtest/visualtest.go`: Capture(), Compare() | Framework present |
+| 30 | Networking (v5.0+) | ⏳ Stub | `pkg/networking/networking.go`: Server/Client with boolean flags only | Correctly deferred per roadmap |
+| 31 | Security (v5.0+) | ⏳ Stub | `pkg/security/security.go`: returns ErrNotImplemented | Correctly deferred |
+| 32 | Social (v5.0+) | ⏳ Stub | `pkg/social/social.go`: in-memory only | Correctly deferred |
+| 33 | Companion AI (v5.0+) | ⏳ Stub | `pkg/companion/companion.go`: empty Update() | Correctly deferred |
 
-**Tier 1 — Engine Additions:**
-
-| System | Velocity Implementation | venture Source |
-|--------|------------------------|----------------|
-| Dynamic lighting | Per-entity light sources: thruster glow, muzzle flash, explosion bloom, background starlight | `pkg/rendering` (lighting subsystem) |
-| Weather system (13 types → space weather) | 13 distinct space-weather phenomena, one per row below; each implements `SetGenre()` for genre-specific visual presentation | `pkg/world` (weather subsystem) |
-
-Space weather types:
-
-| # | Weather Type | Gameplay Effect | Active Genre(s) |
-|---|-------------|-----------------|-----------------|
-| 1 | Solar flare | Visibility burst — temporary screen whiteout | `scifi`, `postapoc` |
-| 2 | Ion storm | Controls interference — thruster response degraded | `scifi` |
-| 3 | Nebula interference | Radar jamming — enemy markers hidden | `scifi`, `fantasy` |
-| 4 | Debris field | Collision hazard — dense obstacle layer | `postapoc`, `scifi` |
-| 5 | Void fog | Extreme darkness — visibility severely reduced | `horror` |
-| 6 | Data storm | HUD corruption — score display scrambled temporarily | `cyberpunk` |
-| 7 | Arcane tempest | Spell deflection — projectiles randomly redirected | `fantasy` |
-| 8 | Dust clouds | Drag increase — movement slowed | `postapoc` |
-| 9 | Meteor shower | Random projectile rain from top of screen | all genres |
-| 10 | Radiation zone | Continuous hull damage while inside zone | `scifi`, `horror` |
-| 11 | Black-hole gravity well | Area gravity pull — ships spiral if not thrusting | `scifi`, `horror` |
-| 12 | Pulsar sweep | Periodic damage wave — brief safe window between pulses | `scifi` |
-| 13 | Comet trail | Speed boost corridor — hazardous debris on the edges | `fantasy`, `scifi` |
-
-| System | Velocity Implementation | venture Source |
-|--------|------------------------|----------------|
-| Environmental storytelling | Background narrative conveyed through environment: drifting wreckage, distant battles, ruins, lore fragments in debris patterns | `pkg/world` |
-
-**Tier 2 — Visual / Audio Enhancements:**
-
-| System | Velocity Adaptation | venture Source |
-|--------|---------------------|----------------|
-| Enhanced sprite generation | Higher-resolution procedural sprites; animated engine exhaust, weapon glow, shield shimmer | `pkg/rendering` |
-| Visual test harness | Automated per-genre screenshot regression tests | `pkg/visualtest` |
-| Audit / telemetry | Frame-time audit log, entity-count telemetry for performance regression detection | `pkg/audit` |
-| Stability monitoring | Crash/freeze detection; auto-save before crash; watchdog timer | `pkg/stability` |
-
-**Tier 3 — Advanced (style-appropriate):**
-
-| Venture System | Velocity Adaptation | venture Source |
-|----------------|---------------------|----------------|
-| Destructible environments | Destructible asteroids, space stations, orbital debris structures | `pkg/world` |
-| Mini-games | Bonus rounds between waves: asteroid slalom, target practice, docking challenge | `pkg/world` (mini-game subsystem) |
+**Overall: 27/29 v1.0 goals fully achieved, 2 partial**
 
 ---
 
-### v4.0 — Gameplay Expansion: Upgrades, Bosses, Powerups, Leaderboards
+## Roadmap
 
-> Deep run-to-run progression; replayable with meaningful choices; full boss encounters.
+### Priority 1: Implement Adaptive Background Music Generation
 
-**Tier 2 — Progression & Economy (adapted from venture):**
+**Impact**: High — directly affects player experience and genre immersion. The game is silent except for SFX.
 
-| Venture System | Velocity Adaptation | venture Source |
-|----------------|---------------------|----------------|
-| Progression — XP / leveling | Score-multiplier unlocks + permanent ship upgrades earned between waves | `pkg/balance` |
-| Inventory / items | Powerup slots: four active slots for temporary powerups + one passive slot | `pkg/world` (inventory subsystem) |
-| Skill / talent trees | Ship upgrade tree: hull, engines, weapons, shields, special; visible between-wave screen | `pkg/class` |
-| Character classes (15 base + 20 prestige) | Ship hulls with distinct base stats and playstyle: 15 hull classes (scout, interceptor, gunship, carrier, …) delivered in v4.0; 20 prestige variants unlocked by accumulating score milestones across multiple runs — prestige hulls are a long-term progression goal that extends into post-v4.0 patches | `pkg/class` |
-| Loot / drops | Powerup drops from destroyed enemies and boss crates | `pkg/world` (loot subsystem) |
-| Crafting | Ship customization between waves: swap weapon loadouts, apply salvaged upgrades | `pkg/world` (crafting subsystem) |
-| Shops / economy | Between-wave shop: spend score credits on upgrades, repairs, weapon mods | `pkg/world` (economy subsystem) |
-| Balance system | Stat balance for all hulls, weapons, enemy types, boss phases | `pkg/balance` |
-| Companion AI | Wingman AI: CPU-controlled co-pilot that assists player, evades, and calls out threats | `pkg/companion` |
-| World events | Boss waves, meteor showers, special events (elite invasion, bonus wave, genre event) | `pkg/world` |
+**Current State**:
+- `pkg/audio/audio.go:126-128`: `PlayMusic()` sets `musicPlaying = true` but generates no audio
+- `pkg/audio/audio.go:91-96`: `SetIntensity()` stores value but never uses it
+- `pkg/audio/audio.go:433-478`: `GetGenreParams()` returns unused tempo/waveform data
+- Game loop correctly calls `SetIntensity(0.3)` idle, `SetIntensity(0.8)` combat
 
-**Velocity-Specific (new):**
+**Tasks**:
+- [ ] Implement `generateMusicStream()` in `pkg/audio/audio.go` that produces continuous PCM
+- [ ] Use `GenreAudioParams` (tempo, waveform, scale) to vary output per genre
+- [ ] Layer system: base pad (always), percussion (intensity > 0.5), melody (intensity > 0.7)
+- [ ] Stream via `audio.InfiniteLoop` or custom `io.Reader` to avoid buffer allocation per frame
+- [ ] Test: audio output audibly changes when waves start/end
 
-| System | Description |
-|--------|-------------|
-| Powerup system | Temporary powerups: shields, triple-shot, speed boost, magnet, invincibility; permanent: hull plating, engine tuning, weapon charge |
-| Leaderboards | Per-seed and global high-score tracking; local and server-backed; genre filter |
-| Boss encounters | Multi-phase bullet-hell bosses; genre-skinned; unique attack patterns per phase; cinematic intro |
+**Reference**: Ebitengine audio streaming patterns at `audio.NewContext().NewPlayerFromBytes()` already used for SFX
 
----
-
-### v5.0+ — Multiplayer Co-op / Competitive, Social, Production Polish
-
-> Co-op and competitive multiplayer; social layer; mod support; production-grade distribution.
-
-**Tier 4 — Multiplayer & Social (scaled from venture):**
-
-| Venture System | Velocity Adaptation | venture Source |
-|----------------|---------------------|----------------|
-| Client-server netcode (200–5000 ms) | Co-op (2–4 players) and competitive score-attack; lag-compensated input | `pkg/networking` |
-| E2E encrypted chat | In-game squadron chat with end-to-end encryption | `pkg/security` / `pkg/social` |
-| Guilds → squadrons | Persistent named squadrons; shared leaderboard entries | `pkg/social` |
-| Territory control → sector leaderboards | Per-genre sector control leaderboards; weekly resets | `pkg/social` |
-| Federation | Cross-instance player identity federation | `pkg/social` |
-| Cross-server travel → cross-server leaderboards | Compare scores across server regions / instances | `pkg/social` |
-| Host-play | Local host runs authoritative game instance; others connect | `pkg/hostplay` |
-| Integration layer | External service integration: OAuth identity, CDN asset delivery, telemetry pipeline | `pkg/integration` |
-
-**Tier 6 — Production:**
-
-| System | Description | venture Source |
-|--------|-------------|----------------|
-| Docker | Containerised server and CI build image | — |
-| Release signing | Code-signing for macOS, Windows, and WASM | — |
-| Mobile builds | iOS and Android via `ebitenmobile`; touch controls | — |
-| Mod framework | Scripted mod API for custom ships, enemies, weapons, and wave scripts | `mods/` |
-| Performance hardening | Load-testing, flame-graph guided optimisation at target 5000+ entity count | `pkg/benchmark` / `pkg/stability` |
+**Validation**:
+```go
+// In game, verify music state transitions:
+g.audio.PlayMusic()          // Should start ambient pad
+g.audio.SetIntensity(0.8)    // Should add combat layers
+```
 
 ---
 
-## Excluded Features
+### Priority 2: Add Tests for `pkg/game` Package
 
-The following venture systems are **not included** in velocity, with rationale:
+**Impact**: High — `pkg/game/game.go` is 670 lines (largest file) with 41 functions at 0% coverage. Contains critical game loop logic.
 
-| Venture System | Rationale |
-|----------------|-----------|
-| Vehicles | Player *is* the vehicle; a separate vehicle system is redundant. |
-| Reputation / alignment | Arcade sessions are too short for faction standing to be meaningful. |
-| Books / lore system | Detailed written lore breaks the fast-paced arcade flow. |
-| Emotes | No persistent avatar; emotes have no context in a shooter. |
-| Trading (player-to-player) | Economy scope limited to between-wave shop; P2P trading adds unwanted complexity. |
-| Mail system | No persistent inbox context in an arcade session. |
-| Fluid dynamics | No liquid in space; zero gameplay use. |
-| Building / housing | Static arena play; no construction meta-game. |
-| Furniture system | No housing, therefore no furniture. |
-| VR system (`pkg/vr`) | Arcade top-down perspective is not suited to VR; deferred indefinitely. |
-| Dialogue system | No named NPCs; narrative delivered through environment and HUD only. |
+**Current State**:
+- `go-stats-generator`: file cohesion 0.00, burden score 1.41 (highest)
+- Functions like `updateGameplay()`, `NewGame()`, `initializeSystems()` untested
+- Integration points between systems untested
 
----
+**Tasks**:
+- [ ] Create `pkg/game/game_test.go` with build tag `//go:build !noebiten`
+- [ ] Test `NewGame()`: verify all systems initialized, genre propagated
+- [ ] Test `startNewGame()`: verify entity creation, score reset, wave start
+- [ ] Test `onEnemyKilled()`: verify scoring, combo, particle emission
+- [ ] Test save/load cycle: `saveGame()` → `loadAndResumeGame()` round-trip
+- [ ] Target: ≥50% coverage of `pkg/game`
 
-## Shared Infrastructure
-
-The following venture packages are portable and will be vendored or imported directly into velocity with minimal adaptation:
-
-| Package | Role in velocity |
-|---------|-----------------|
-| `pkg/engine` | ECS core, deterministic RNG, `SetGenre()` interface, game-loop scaffolding |
-| `pkg/procgen/genre` | Genre post-processing presets, genre-keyed asset generation helpers |
-| `pkg/audio` | Adaptive music engine, SFX player, positional audio |
-| `pkg/rendering` | Sprite generation, animation, particle system, dynamic lighting, batching, viewport culling |
-| `pkg/networking` | Client-server netcode, connection management, lag compensation |
-| `pkg/security` | E2E encrypted transport, authentication tokens |
-| `pkg/social` | Squadron management, leaderboards, federation identity |
-| `pkg/saveload` | Save/load serialisation, run-state snapshots |
-| `pkg/config` | Settings schema, hot-reload |
-| `pkg/balance` | Stat tuning tables, difficulty curves |
-| `pkg/companion` | Wingman AI behaviour trees |
-| `pkg/ux` | Menu framework, HUD components, tutorial scaffolding |
-| `pkg/audit` | Frame-time telemetry, entity-count logging |
-| `pkg/benchmark` | Per-system micro-benchmark harness |
-| `pkg/stability` | Crash detection, watchdog, auto-save |
-| `pkg/errors` | Structured error types |
-| `pkg/recovery` | Panic recovery middleware |
-| `pkg/validation` | Input and config validation |
-| `pkg/version` | Embedded version + save-file migration |
-| `pkg/hostplay` | Local-host authoritative server scaffold |
-| `pkg/integration` | External service integration hooks |
-| `mods/` | Mod loader and scripted mod API |
+**Validation**:
+```bash
+go test -tags noebiten -cover ./pkg/game/...
+# Expected: coverage: ≥50% of statements
+```
 
 ---
 
-## Plan History
+### Priority 3: Extract Game Struct to Reduce `main.go` Coupling
 
-- 2026-02-27 PLAN.md created for v1.0 — Core Engine + Playable Single-Player (archived to docs/)
+**Impact**: Medium — improves maintainability and testability. Currently `cmd/velocity/main.go` is minimal (42 lines) but `pkg/game/game.go` has high coupling (11 dependencies).
+
+**Current State**:
+- `go-stats-generator`: game package has 11 dependencies (coupling score 5.5)
+- Draw functions tightly coupled to Ebiten types
+- Menu input handling mixed with game state
+
+**Tasks**:
+- [ ] Move draw helper functions to `pkg/game/draw.go` (extract from game.go:663+)
+- [ ] Move menu input handling to `pkg/game/input.go` (extract from game.go:558-591)
+- [ ] Extract constants to `pkg/game/constants.go` (lines 29-103)
+- [ ] Reduce `game.go` to ≤400 lines
+- [ ] Target: coupling score ≤4.0
+
+**Validation**:
+```bash
+go-stats-generator analyze . --skip-tests | grep "game:"
+# Expected: coupling: ≤4.0
+wc -l pkg/game/game.go
+# Expected: ≤400
+```
+
+---
+
+### Priority 4: Reduce Magic Numbers in Ship Class Definitions
+
+**Impact**: Low-Medium — improves balance tuning and readability. 629 magic numbers reported.
+
+**Current State**:
+- `pkg/class/class.go:16-55`: ship stats (60, 300, 2, 2, etc.) hardcoded
+- `pkg/procgen/spawner.go:14-26`: enemy stat constants defined but scattered
+
+**Tasks**:
+- [ ] Create `pkg/balance/ship_stats.go` with `ShipClassStats` struct
+- [ ] Load ship stats from `config.yaml` under `balance:` section for modding support
+- [ ] Document stat ranges in comments (health: 60-200, speed: 120-300, etc.)
+- [ ] Target: reduce magic number count by 30%
+
+**Validation**:
+```bash
+go-stats-generator analyze . --skip-tests --format json | jq '.maintenance.magic_numbers'
+# Expected: ≤440 (30% reduction from 629)
+```
+
+---
+
+### Priority 5: Implement High Score Persistence
+
+**Impact**: Medium — increases replayability. Currently per-seed high scores are not tracked between sessions.
+
+**Current State**:
+- `pkg/saveload/saveload.go`: RunState has Score field but only for active session
+- `pkg/social/social.go`: Leaderboard struct exists but is in-memory only
+- No persistent high score display on main menu
+
+**Scope**: Local-only high score (network leaderboards are v4.0+)
+
+**Tasks**:
+- [ ] Add `HighScores map[int64]int64` to a new `highscores.json` file (keyed by seed)
+- [ ] On game over, compare and update if score exceeds high score for that seed
+- [ ] Display "HIGH SCORE: X" on main menu and game over screen
+- [ ] Add `GetHighScore(seed int64) int64` and `SetHighScore(seed, score int64)` to `pkg/saveload`
+
+**Validation**:
+```go
+// After game over with score 5000 on seed 12345:
+hs := saveload.GetHighScore(12345)
+// Expected: hs == 5000
+
+// After restart:
+hs := saveload.GetHighScore(12345)
+// Expected: hs == 5000 (persisted)
+```
+
+---
+
+### Priority 6: Genre-Specific Post-Processing Effects (v2.0)
+
+**Impact**: Medium — documented in ROADMAP for v2.0, not blocking v1.0
+
+**Current State**:
+- `pkg/procgen/genre/genre.go`: genre presets have color palettes
+- No post-processing shader effects (bloom, desaturation, etc.)
+
+**Tasks** (v2.0):
+- [ ] Add post-process shader support via Ebitengine's Kage shaders
+- [ ] Implement per-genre effects: bloom (scifi), desaturation (horror), neon glow (cyberpunk)
+- [ ] Make effects configurable in `config.yaml`
+
+---
+
+### Priority 7: Space Weather System (v3.0)
+
+**Impact**: High for v3.0 — documented as 13 weather types with gameplay effects
+
+**Current State**:
+- `pkg/world/world.go`: Weather struct exists with SetGenre()
+- No weather generation or gameplay effects implemented
+
+**Tasks** (v3.0):
+- [ ] Implement weather state machine with transition logic
+- [ ] Add gameplay effects for each weather type (visibility, drag, damage)
+- [ ] Integrate with rendering for visual effects
+- [ ] Add genre filtering (some weather only appears in certain genres)
+
+---
+
+## Code Quality Metrics Summary
+
+| Metric | Value | Target | Status |
+|--------|-------|--------|--------|
+| Total Lines of Code | 2,274 | — | Baseline |
+| Test Coverage | 90.1% | 82% | ✅ Exceeded |
+| `pkg/game` Coverage | 0% | 50% | ❌ Gap |
+| Functions > 50 lines | 2 (0.5%) | <5% | ✅ Good |
+| Average Complexity | 2.6 | <5 | ✅ Good |
+| High Complexity (>10) | 0 | 0 | ✅ Perfect |
+| Magic Numbers | 629 | <440 | ⚠️ High |
+| Documentation Coverage | 86.2% | 80% | ✅ Good |
+| Circular Dependencies | 0 | 0 | ✅ Perfect |
+| Duplication Ratio | 0.15% | <5% | ✅ Excellent |
+
+---
+
+## Version Milestones
+
+| Version | Status | Key Remaining Work |
+|---------|--------|-------------------|
+| v1.0 | 93% complete | Adaptive music generation, pkg/game tests |
+| v2.0 | Not started | Post-processing shaders, enhanced sprites |
+| v3.0 | Not started | Space weather, dynamic lighting |
+| v4.0 | Not started | Ship classes, bosses, powerups |
+| v5.0 | Stubbed | Multiplayer, social features |
+
+---
+
+## Appendix: Metrics Reference
+
+**go-stats-generator output** (2026-03-28):
+- Files processed: 46
+- Analysis time: 117ms
+- Longest function: `initializeSystems` (69 lines)
+- Highest complexity: `updateGameplay` (8.8)
+- Most coupled package: `game` (11 dependencies)
+- Largest file: `pkg/game/game.go` (670 lines)
